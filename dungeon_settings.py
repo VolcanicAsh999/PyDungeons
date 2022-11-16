@@ -9,11 +9,9 @@ import string
 pygame.mixer.pre_init()
 pygame.init()
 
-RUN_PDPY_SERVER = False #uses extra resources
+RUN_PDPY_SERVER = False #uses extra resources, wip
 
-USE_MODS = False #DO NOT SET TO TRUE! MODS ARE CURRENTLY BROKEN!
-
-TACOMODE = False
+USE_MODS = False #leave false, wip
 
 RSAVE = True
 WSAVE = True
@@ -131,11 +129,10 @@ for i in ['screenshots', 'saves', 'mods', 'backups', 'scripts']:
 import dungeon_resloader
 dungeon_resloader.check()
 
-bg1 = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '1.wav'))
-bg2 = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '2.wav'))
-bg3 = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '3.wav'))
-bg4 = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '4.wav'))
-rainingtacos = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'rainingtacos.wav'))
+bg1 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '1.wav'))
+bg2 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '2.wav'))
+bg3 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '3.wav'))
+bg4 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '4.wav'))
 
 zombie_groan = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'zombie_groan.ogg'))
 zombie_die = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'zombie_death.ogg'))
@@ -150,8 +147,6 @@ weapon_hit = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'weapon_hit.ogg'))
 
 def bgsound():
     bgsounds = [bg1, bg2, bg3, bg4]
-    if TACOMODE:
-        bgsounds = [rainingtacos]
     for sound in bgsounds:
         sound.set_volume(70/100)
     random.shuffle(bgsounds)
@@ -162,7 +157,10 @@ def bgsound():
         random.shuffle(bgsounds)
 
 def start():
-    music_thread = threading.Thread(target=bgsound, daemon=True)
-    logger.info('Starting music thread...', 'ResourceLoader')
-    music_thread.start()
-    logger.info('Music thread succesfully started!', 'ResourceLoader')
+    if bg1 and bg2 and bg3 and bg4:
+        music_thread = threading.Thread(target=bgsound, daemon=True)
+        logger.info('Starting music thread...', 'ResourceLoader')
+        music_thread.start()
+        logger.info('Music thread succesfully started!', 'ResourceLoader')
+    else:
+        logger.error('Music missing, music thread not starting...', 'ResourceLoader')
