@@ -1,0 +1,3 @@
+/clear <item> [reversed]
+Takes 1 of the item from you.
+If the `reversed` argument is used, look through the list backwards.

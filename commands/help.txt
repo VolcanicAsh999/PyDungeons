@@ -1,0 +1,4 @@
+/help <command/script>
+Shows the documentation for the command/script (if there is any).
+/help
+Shows a list of commands/scripts

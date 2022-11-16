@@ -1,0 +1,3 @@
+/teleport <x> <y>
+Sets your position to (x, y).
+Tp is an alias for teleport.

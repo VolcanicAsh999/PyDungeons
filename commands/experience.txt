@@ -1,0 +1,7 @@
+/experience set <amount> <points|levels>
+Sets your experience levels/progress to amount.
+
+/experience add <amount> <points|levels>
+Adds amount to your experience levels/progress.
+
+Xp is an alias for experience.

@@ -1,0 +1,2 @@
+/give <name>
+Gives you 1 of the item with that name.
