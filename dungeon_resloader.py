@@ -5,7 +5,7 @@ path = os.path.join(os.path.dirname(__file__), 'backres')
 path2 = os.path.join(os.environ['APPDATA'], '.pydungeons', 'resources')
 
 def check():
-    import logger
+    import dungeon_logger as logger
     logger.info('Checking for unavailable/unused resources!', 'ResourceLoader')
     logger.info('Resource path is: ' + path2, 'ResourceLoader')
     count = 0

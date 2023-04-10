@@ -1,5 +1,5 @@
 import re
-import logger
+import dungeon_logger as logger
 import os
 import dungeon_settings, dungeon_weapons, dungeon_enemies, dungeon_chests, dungeon_helpful, dungeon_arrows
 
@@ -61,7 +61,7 @@ def parsecmd(game, cmd, stop=False):
     if re.match('^code ', cmd):
         cmd = cmd[5:]
         try:
-            exec(cmd)
+            exec(cmd, get_globals(game, None), get_globals(game, None))
         except Exception as e:
             game.message('Error executing code - ' + str(e))
             logger.error('Error executing code - ' + str(e))

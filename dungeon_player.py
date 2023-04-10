@@ -19,8 +19,9 @@ class HitBox:
 
 
 class Player:
-    def __init__(self, x, y):
+    def __init__(self, x, y, difficulty):
         self.difficulty = 0
+        self.dif = difficulty
         self.dx = self.dy = 0
         self.width = 30
         self.height = 35
@@ -58,6 +59,10 @@ class Player:
         self._has = []
         self.nextartype = 'default'
         self.attack_speed = 0
+
+    @property
+    def power_(self):
+        return self.power + ((self.dif - 1) * 15)
 
     def render(self, game):
         if self.hp <= 0:
@@ -521,7 +526,13 @@ class Player:
         self._has.clear()
 
     def usea(self, i, game):
-        if i == 1 and self.a1 and self.a1.cooldown <= 0:
+        if hasattr(self.a1, 'using') and self.a1.using and i == 1:
+            self.a1.cancel()
+        elif hasattr(self.a2, 'using') and self.a2.using and i == 2:
+            self.a2.cancel()
+        elif hasattr(self.a3, 'using') and self.a3.using and i == 3:
+            self.a3.cancel()
+        elif i == 1 and self.a1 and self.a1.cooldown <= 0:
             try: self.a1.use(game)
             except TypeError: self.a1.use(game,1)
         elif i == 2 and self.a2 and self.a2.cooldown <= 0:

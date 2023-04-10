@@ -82,7 +82,7 @@
     -Added The Cauldron and Conjured Slimes
 
 1.3.0
-    -Reworked chat system so there is no longer a seperate window, but just written in the corner
+    -Reworked chat system so there is no longer a separate window, but just written in the corner
     -Also puts chat on the left side, rather than the right (under the HUD)
 
 1.3.1
@@ -99,3 +99,18 @@
 
 1.3.5
     -Renamed many modules so the Pycraft Launcher could run the game
+
+1.3.6
+    -Renamed some files
+    -Added Iceologer, Ice Blocks
+    -More coming soon...
+
+1.4.0
+    -Added Difficulty! Apocalypse, Adventure, and Default
+
+1.4.1
+    -Changed how the Corrupted Beacon works, making it more like the default game
+
+1.5.0
+    -Completely changed artifacts, taking away the souls requirements and greatly decreasing cooldown
+    -Made artifacts much more useful

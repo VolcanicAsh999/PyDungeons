@@ -4,12 +4,18 @@ import time
 import math
 import dungeon_arrows
 from threading import Thread
-import dungeon_util #has a function to choose the nearest enemy/helpful from the list
+import dungeon_util
 
-#particle mappings, type -> particle color
-_types = {'strength': pygame.Color('purple'), 'slowness': pygame.Color('dark grey'), 'speed': pygame.Color('light blue'), 'weakness': pygame.Color('grey'), 'poison': pygame.Color('green'), 'resistance': pygame.Color('dark red'), 'regeneration': pygame.Color('pink')}
+# Particle mappings, type -> particle color
+_types = {'strength': pygame.Color('purple'),
+          'slowness': pygame.Color('dark grey'),
+          'speed': pygame.Color('light blue'),
+          'weakness': pygame.Color('grey'),
+          'poison': pygame.Color('green'),
+          'resistance': pygame.Color('dark red'),
+          'regeneration': pygame.Color('pink')}
 
-class _particle: #one particle
+class _particle:  # One particle
     def __init__(self, _type):
         self.x = 0
         self.y = 0
@@ -24,19 +30,29 @@ class _particle: #one particle
     def draw(self, game):
         pygame.draw.circle(game.screen, self.color, (self.x, self.y), 1)
 
-class _particlehandler: #draws 3 particles of a certain type
+
+class _particlehandler:  # Group of 3 particles of a certain type
     def __init__(self, _type):
         self.particle1 = _particle(_type)
         self.particle2 = _particle(_type)
         self.particle3 = _particle(_type)
 
     def drawparts(self, xmin, xmax, ymin, ymax, game):
-        self.particle1.render(game, random.randint(min(xmin, xmax), max(xmin, xmax)), random.randint(min(ymin, ymax), max(ymin, ymax)))
-        self.particle2.render(game, random.randint(min(xmin, xmax), max(xmin, xmax)), random.randint(min(ymin, ymax), max(ymin, ymax)))
-        self.particle3.render(game, random.randint(min(xmin, xmax), max(xmin, xmax)), random.randint(min(ymin, ymax), max(ymin, ymax)))
+        self.particle1.render(game, random.randint(min(xmin, xmax),
+                                                   max(xmin, xmax)),
+                              random.randint(min(ymin, ymax),
+                                             max(ymin, ymax)))
+        self.particle2.render(game, random.randint(min(xmin, xmax),
+                                                   max(xmin, xmax)),
+                              random.randint(min(ymin, ymax),
+                                             max(ymin, ymax)))
+        self.particle3.render(game, random.randint(min(xmin, xmax),
+                                                   max(xmin, xmax)),
+                              random.randint(min(ymin, ymax),
+                                             max(ymin, ymax)))
 
 
-class Particles: #has a _particlehandler for each type and mappings to them
+class Particles:  # Groups together all _particlehandlers
     def __init__(self):
         self.strength = _particlehandler('strength')
         self.slowness = _particlehandler('slowness')
@@ -45,49 +61,26 @@ class Particles: #has a _particlehandler for each type and mappings to them
         self.poison = _particlehandler('poison')
         self.regeneration = _particlehandler('regeneration')
         self.resistance = _particlehandler('resistance')
-        self.particles = {'strength': self.strength, 'slowness': self.slowness, 'speed': self.speed, 'weakness': self.weakness, 'poison': self.poison, 'regeneration': self.regeneration, 'resistance': self.resistance}
+        self.particles = {'strength': self.strength,
+                          'slowness': self.slowness,
+                          'speed': self.speed,
+                          'weakness': self.weakness,
+                          'poison': self.poison,
+                          'regeneration': self.regeneration,
+                          'resistance': self.resistance}
 
     def particle(self, p, xmin, xmax, ymin, ymax, game):
         if p not in self.particles.keys():
-            print(f'Particle for effect {p} does not exist') #TODO: replace with logger.critical
+            # TODO: Replace with logger.critical
+            print(f'Particle for effect {p} does not exist')
             return
         self.particles[p].drawparts(xmin, xmax, ymin, ymax, game)
 
+
 particle = Particles()
 
-"""class ThrowingPotion:
-    def __init__(self, x, y, xvel, yvel, type):
-        self.x = x
-        self.y = y
-        self.xvel = xvel
-        self.yvel = yvel
-        self.type = type
-        self.isfalling = True
-        self.xdone = False
-        self.ydone = False
 
-    def render(self, game):
-        self.draw(game)
-        if self.xdone and self.ydone:
-            pass
-        else:
-            self.x += self.xvel
-            self.y += self.yvel
-            if self.xvel > 0: self.xvel -= 0.1
-            elif self.xvel < 0: self.xvel += 0.1
-            elif not self.xdone: self.xdone = True
-            if self.yvel > 0: self.yvel -= 0.1
-            elif self.yvel < 0: self.yvel += 0.1
-            elif not self.ydone: self.ydone = True
-
-    def draw(self, game):
-        if not self.isfalling:
-            particle.particle(self.type, round(self.x) - 20, round(self.y) - 20, round(self.x) + 20, round(self.y) + 20, game)
-        else:
-            pygame.draw.circle(game.screen, pygame.Color('white'), (round(self.x), round(self.y)), 4)
-            pygame.draw.circle(game.screen, _types[self.type], (round(self.x), round(self.y)), 3""" #original idea, abandoned halfway through
-
-class EmeraldPot: #lol
+class EmeraldPot:
     def __init__(self, x, y, data={}):
         self.x = x
         self.y = y
@@ -105,15 +98,19 @@ class EmeraldPot: #lol
         self.x = 1000000
         self.y = 1000000
         self._die = True
-        player.emeralds += random.randint(15, 25) #die and give emeralds
+        player.emeralds += random.randint(15, 25)  # Die and give emeralds
 
     def draw(self, game):
-        pygame.draw.rect(game.screen, pygame.Color('turquoise'), pygame.Rect(self.x, self.y + 15, 15, 5))
-        pygame.draw.rect(game.screen, pygame.Color('turquoise'), pygame.Rect(self.x + 2, self.y + 9, 11, 6))
-        pygame.draw.rect(game.screen, pygame.Color('turquoise'), pygame.Rect(self.x + 5, self.y, 5, 9)) #wow... turquoise is an actual pygame.Color?
+        pygame.draw.rect(game.screen, pygame.Color('turquoise'),
+                         pygame.Rect(self.x, self.y + 15, 15, 5))
+        pygame.draw.rect(game.screen, pygame.Color('turquoise'),
+                         pygame.Rect(self.x + 2, self.y + 9, 11, 6))
+        pygame.draw.rect(game.screen, pygame.Color('turquoise'),
+                         pygame.Rect(self.x + 5, self.y, 5, 9))
 
     def get_save_data(self):
-        return {'_die': self._die, 'x': self.x, 'y': self.y} #needs to know whether or not it should die, and its position
+        return {'_die': self._die, 'x': self.x, 'y': self.y}
+
 
 class ThrowingPotion(dungeon_arrows.Arrow):
     def __init__(self, startpos, target, safe, effect):
@@ -125,7 +122,7 @@ class ThrowingPotion(dungeon_arrows.Arrow):
         self._x_ = 0
         self._y_ = 0
 
-    def move_xy(self, x, y): #needs to know how far it has gone
+    def move_xy(self, x, y):  # Needs to know how far it has gone
         super().move_xy(x, y)
         self.xm += 1
         self.ym += 1
@@ -137,20 +134,24 @@ class ThrowingPotion(dungeon_arrows.Arrow):
 
     def destroy(self, game):
         super().destroy(game)
-        game.other.append(ThrownPotion((self._x_ if self._x_ else self.rect.x), (self._y_ if self._y_ else self.rect.y), self.effect)) #make a potion cloud when it breaks
+        game.other.append(ThrownPotion(
+            (self._x_ if self._x_ else self.rect.x),
+            (self._y_ if self._y_ else self.rect.y),
+            self.effect))
 
     def draw(self, game):
         pygame.draw.circle(game.screen, pygame.Color('white'), (self.x, self.y), 4)
         pygame.draw.circle(game.screen, self.col, (self.x, self.y), 3)
 
-class ConjuredProjectile(dungeon_arrows.Arrow): #arrow-type projectile made by Conjured Slimes (homing missile)
+
+class ConjuredProjectile(dungeon_arrows.Arrow):
     def __init__(self, x, y):
         super().__init__((x, y), (0, 0), 3, 10, None)
         self.d1 = 0
         self.d2 = 0
 
     def render(self, game):
-        #self.move_xy(self.dx, self.dy)
+        # self.move_xy(self.dx, self.dy)
         target = dungeon_util.get_nearest_target(game, self, True)
 
         if target.rect.x < self.x: #home in!
@@ -164,22 +165,25 @@ class ConjuredProjectile(dungeon_arrows.Arrow): #arrow-type projectile made by C
 
         self.draw(game)
         
-        for entity in game.helpfuls + game.enemies + game.spawners + [game.player]: #see if it hit anything
-            #if target.rect.y in range(self.rect.y - 20, self.rect.y + 20) and target.rect.x in range(self.rect.x - 20, self.rect.x + 20):
-            if target.rect.y - 20 < self.y < target.rect.y + 20 and target.rect.x - 20 < self.x < target.rect.x + 20:
+        for entity in game.helpfuls + game.enemies + \
+            game.spawners + [game.player]:
+            if target.rect.y - 20 < self.y < target.rect.y + 20 and \
+               target.rect.x - 20 < self.x < target.rect.x + 20:
                 self.hit(entity, game)
                 self.destroy(game)
 
-        if self.growing:
-            self.damage += 0.04 #wait, they shouldn't be able to grow..?
-
-        if self.rect.x < -100 or self.rect.x > game.screen.get_width() + 100 or self.rect.y < -100 or self.rect.y > game.screen.get_height() + 100:
+        if (self.rect.x < -100 or
+            self.rect.x > game.screen.get_width() + 100 or
+            self.rect.y < -100 or
+            self.rect.y > game.screen.get_height() + 100):
             self.destroy(game)
 
     def draw(self, game):
-        pygame.draw.circle(game.screen, pygame.Color('purple'), (self.x, self.y), 5) #just a purple lump
+        pygame.draw.circle(game.screen, pygame.Color('purple'),
+                           (self.x, self.y), 5)
 
-class ThrownPotion: #potion cloud
+
+class ThrownPotion:  # Potion cloud
     def __init__(self, x, y, effect):
         self.x = x
         self.y = y
@@ -195,32 +199,38 @@ class ThrownPotion: #potion cloud
         for i in game.helpfuls + game.enemies + [game.player]:
             if i.rect.colliderect(pygame.Rect(self.x - 10, self.y - 10, 20, 20)):
                 if i.effects[self.effect] < 10:
-                    i.effects[self.effect] = 10 #give effect for 10 seconds if an entity gets in it
-        if time.time() - self.t >= 10: #die after 10 seconds
+                    i.effects[self.effect] = 10
+        if time.time() - self.t >= 10:
             self.x = 1000000
             self.y = 1000000
             game.other.remove(self)
 
     def draw(self, game):
-        particle.particle(self.effect, self.x - 10, self.y - 10, self.x + 10, self.y + 10, game) #3 times as many particles as normal
-        particle.particle(self.effect, self.x - 10, self.y - 10, self.x + 10, self.y + 10, game)
-        particle.particle(self.effect, self.x - 10, self.y - 10, self.x + 10, self.y + 10, game)
+        particle.particle(self.effect, self.x - 10, self.y - 10,
+                          self.x + 10, self.y + 10, game)
+        particle.particle(self.effect, self.x - 10, self.y - 10,
+                          self.x + 10, self.y + 10, game)
+        particle.particle(self.effect, self.x - 10, self.y - 10,
+                          self.x + 10, self.y + 10, game)
 
     def get_save_data(self):
         return {'x': self.x, 'y': self.y, 'effect': self.effect, 'howlong': time.time() - self.t}
 
-class PoisonCloud(ThrownPotion): #special thrown potion that has a safe object and is automatically poison
+
+class PoisonCloud(ThrownPotion):
     def __init__(self, x, y, safe):
         super().__init__(x, y, 'poison')
         if type(safe) == dict:
-            self.safe = None #you stop being safe when you quit!
+            self.safe = None
         else:
             self.safe = safe
 
     def render(self, game):
         self.draw(game)
         for i in game.helpfuls + game.enemies + [game.player]:
-            if i != self.safe and i.rect.colliderect(pygame.Rect(self.x - 10, self.y - 10, 20, 20)):
+            if i != self.safe and i.rect.colliderect(pygame.Rect(self.x - 10,
+                                                                 self.y - 10,
+                                                                 20, 20)):
                 if i.effects[self.effect] < 10:
                     i.effects[self.effect] = 10
         if time.time() - self.t >= 10:
@@ -228,8 +238,9 @@ class PoisonCloud(ThrownPotion): #special thrown potion that has a safe object a
             self.y = 1000000
             game.other.remove(self)
 
+
 class TNT:
-    def __init__(self, x, y, data={}): #TNT!
+    def __init__(self, x, y, data={}):
         self.x = x
         self.y = y
         self.fuse = 5
@@ -241,43 +252,103 @@ class TNT:
 
     def render(self, game):
         self.draw(game)
-        if time.time() - self.decreasefuselast >= 1: #decrease the fuse
+        if time.time() - self.decreasefuselast >= 1:  # Decrease the fuse
             self.fuse -= 1
             self.red = not self.red
             self.decreasefuselast = time.time()
         if self.fuse <= 0:
-            Thread(target=self.explode, args=(game,)).start() #TODO: improve this (it is weird)
+            Thread(target=self.explode, args=(game,)).start()
             if self in game.other:
                 game.other.remove(self)
 
     def draw(self, game):
-        pygame.draw.rect(game.screen, pygame.Color('red' if self.red else 'white'), pygame.Rect(self.x - 5, self.y - 5, 15, 15))
+        pygame.draw.rect(game.screen,
+                         pygame.Color('red' if self.red else 'white'),
+                         pygame.Rect(self.x - 5, self.y - 5, 15, 15))
         if self.red:
-            pygame.draw.rect(game.screen, pygame.Color('white'), pygame.Rect(self.x - 5, self.y, 15, 5))
+            pygame.draw.rect(game.screen, pygame.Color('white'),
+                             pygame.Rect(self.x - 5, self.y, 15, 5))
 
-    def explode(*args): #blow up da tnt, man
+    def explode(*args):
         self, game = args
         collision_rect = pygame.Rect(self.x - 45*2, self.y - 45*2, 95*2, 95*2)
         pygame.draw.rect(game.screen, pygame.Color('yellow'), collision_rect)
-        pygame.draw.rect(game.screen, pygame.Color('orange'), pygame.Rect(self.x - 25*2, self.y - 25*2, 55*2, 55*2))
-        pygame.draw.rect(game.screen, pygame.Color('red'), pygame.Rect(self.x - 5*2, self.y - 5*2, 15*2, 15*2))
+        pygame.draw.rect(game.screen, pygame.Color('orange'),
+                         pygame.Rect(self.x - 25*2, self.y - 25*2, 55*2, 55*2))
+        pygame.draw.rect(game.screen, pygame.Color('red'),
+                         pygame.Rect(self.x - 5*2, self.y - 5*2, 15*2, 15*2))
         pygame.display.update()
         time.sleep(2)
         self.rect = pygame.Rect(self.x, self.y, 1, 1)
-        for entity in game.enemies + game.helpfuls + game.spawners + [game.player]:
+        for entity in game.enemies + game.helpfuls + \
+            game.spawners + [game.player]:
             if collision_rect.colliderect(entity.rect):
-                if type(entity) in [dungeon_helpful.Golem, dungeon_helpful.Wolf, dungeon_helpful.Bat]: entity.take_damage(self, 15)
-                else: entity.take_damage(15)
+                if type(entity) in [dungeon_helpful.Golem, dungeon_helpful.Wolf,
+                                    dungeon_helpful.Bat]:
+                    entity.take_damage(self, 15)
+                else:
+                    entity.take_damage(15)
                 entity.knockback(20, self)
 
     def get_save_data(self):
-        return {'x': self.x, 'y': self.y, 'fuse': self.fuse, 'red': self.red, 'howlong': time.time() - self.decreasefuselast} #save the fuse, howlong since fuse was decrease, and color
+        return {'x': self.x, 'y': self.y, 'fuse': self.fuse, 'red': self.red,
+                'howlong': time.time() - self.decreasefuselast}
+
+
+class IceBlock:
+    def __init__(self, x, y, data={}):
+        self.x = x
+        self.y = y
+        self.rect = type('rect', (),
+                         {'x': self.x, 'y': self.y, 'move': self.move})
+        self.start = time.time()
+        self.falling = False
+        self.falltick = 0
+        if 'howlong' in data:
+            self.start -= data['howlong']
+            self.falling = data['falling']
+            self.falltick = data['falltick']
+
+    def render(self, game):
+        if not self.falling:
+            if time.time() - self.start > 4:
+                self.falling = True
+            self.x = game.player.rect.x - 10
+            self.y = (game.player.rect.y - 70) + self.falltick
+        else:
+            self.falltick += 1
+            if self.falltick > 80:
+                game.other.remove(self)
+                dx = abs(self.x - game.player.rect.x)
+                dy = abs(self.y - game.player.rect.y)
+                d = math.sqrt(dx ** 2 + dy ** 2)
+                if d < 10:
+                    game.player.take_damage(25)
+                elif d < 20:
+                    game.player.take_damage(15)
+                elif d < 50:
+                    game.player.take_damage(10)
+                elif d < 100:
+                    game.player.take_damage(5)
+        self.draw(game)
+
+    def draw(self, game):
+        pygame.draw.rect(game.screen, pygame.Color('light blue'), pygame.Rect(self.x, self.y + self.falltick, 40, 20))
+
+    def move(self, x=0, y=0):
+        pass
+
+    def get_save_data(self):
+        return {'x': self.x, 'y': self.y, 'howlong': time.time() - self.start,
+                'falling': self.falling, 'falltick': self.falltick}
+
 
 class EvokerSpikes:
     def __init__(self, x, y, data={}):
         self.x = x
         self.y = y
-        self.rect = type('rect', (), {'x': self.x, 'y': self.y, 'move': self.move}) #needs a rect
+        self.rect = type('rect', (),
+                         {'x': self.x, 'y': self.y, 'move': self.move})
         self.getridof = time.time()
         self.delayd = 0
         self.delayD = 20
@@ -289,26 +360,35 @@ class EvokerSpikes:
         self.draw(game)
         if time.time() - self.getridof > 2:
             if self in game.other:
-                game.other.remove(self) #die after 2 seconds
+                game.other.remove(self)  # Die after 2 seconds
         self.delayd += 1
-        if self.delayd >= self.delayD: #do 1 damage to player and helpfuls
-            if game.player.rect.colliderect(pygame.Rect(self.x - 5, self.y, 20, 15)):
+        if self.delayd >= self.delayD:  # Do 1 damage to player and helpfuls
+            if game.player.rect.colliderect(pygame.Rect(
+                                            self.x - 5, self.y, 20, 15)):
                 game.player.hp -= 1
             for entity in game.helpfuls:
                 if entity.rect.colliderect(pygame.Rect(self.x - 5, self.y, 20, 15)):
                     entity.hp -= 1
 
     def draw(self, game):
-        pygame.draw.lines(game.screen, pygame.Color('black'), True, [(self.x - 5, self.y + 15), (self.x - 5, self.y), (self.x, self.y + 5), (self.x + 5, self.y), (self.x + 10, self.y + 5), (self.x + 15, self.y), (self.x + 15, self.y + 15)])
+        pygame.draw.lines(game.screen, pygame.Color('black'), True, [
+            (self.x - 5, self.y + 15), (self.x - 5, self.y),
+            (self.x, self.y + 5), (self.x + 5, self.y),
+            (self.x + 10, self.y + 5),
+            (self.x + 15, self.y),
+            (self.x + 15, self.y + 15)])
 
-    def move(self, x=0, y=0): #move it
+    def move(self, x=0, y=0):  # Move it
         self.x += x
         self.y += y
 
     def get_save_data(self):
-        return {'x': self.x, 'y': self.y, 'howlong': time.time() - self.getridof, 'delayd': self.delayd} #save howlong it has been and what its damage delay is
+        return {'x': self.x, 'y': self.y,
+                'howlong': time.time() - self.getridof,
+                'delayd': self.delayd}
 
-class WraithFlames: #fire made by a wraith
+
+class WraithFlames:  # Fire made by a wraith
     def __init__(self, x, y, data={}):
         self.x = x
         self.y = y
@@ -325,13 +405,13 @@ class WraithFlames: #fire made by a wraith
         self.draw(game)
         if time.time() - self.getridof > 8:
             if self in game.other:
-                game.other.remove(self) #die after 8 seconds
+                game.other.remove(self)  # Die after 8 seconds
         self.delayd += 1
         if self.delayd >= self.delayD:
             self.delayd = 0
             for entity in game.enemies:
-                if entity.rect.colliderect(pygame.Rect(self.x, self.y, 20, 20)):
-                    if entity.maintype == 'wraith': #wraiths avoid their fires
+                if entity.rect.colliderect(pygame.Rect(self.x,self.y, 20, 20)):
+                    if entity.maintype == 'wraith':  # Wraiths avoid their fire
                         entity.teleport_away()
                     else:
                         entity.hp -= 1 #hurt them, light them on fire
@@ -348,10 +428,18 @@ class WraithFlames: #fire made by a wraith
                     game.player.effects['fire'] = 10
 
     def draw(self, game): #draw flames
-        pygame.draw.line(game.screen, self.col, (self.x, self.y), (self.x + 5, self.y + 19), 3)
-        pygame.draw.line(game.screen, self.col, (self.x + 6, self.y + 1), (self.x + 9, self.y + 18), 3)
-        pygame.draw.line(game.screen, self.col, (self.x + 14, self.y + 3), (self.x + 13, self.y + 20), 3)
-        pygame.draw.line(game.screen, self.col, (self.x + 19, self.y + 2), (self.x + 18, self.y + 19), 3)
+        pygame.draw.line(game.screen, self.col,
+                         (self.x, self.y),
+                         (self.x + 5, self.y + 19), 3)
+        pygame.draw.line(game.screen, self.col,
+                         (self.x + 6, self.y + 1),
+                         (self.x + 9, self.y + 18), 3)
+        pygame.draw.line(game.screen, self.col,
+                         (self.x + 14, self.y + 3),
+                         (self.x + 13, self.y + 20), 3)
+        pygame.draw.line(game.screen, self.col,
+                         (self.x + 19, self.y + 2),
+                         (self.x + 18, self.y + 19), 3)
 
     def move(self, x=0, y=0):
         self.x += x
@@ -361,13 +449,15 @@ class WraithFlames: #fire made by a wraith
         self.move(x, y)
 
     def get_save_data(self):
-        return {'x': self.x, 'y': self.y, 'howlong': time.time() - self.getridof, 'delayd': self.delayd} #save howlong it has been and the delay between its damage
+        return {'x': self.x, 'y': self.y,
+                'howlong': time.time() - self.getridof, 'delayd': self.delayd}
 
-class GeomancerColumn: #geomancer column
+
+class GeomancerColumn:  # Geomancer column
     def __init__(self, x, y, data={}, *, explode=False):
         self.x = x
         self.y = y
-        self.doesexplode = explode #whether or not it is exploding
+        self.doesexplode = explode  # Whether or not it is exploding
         self.rect = pygame.Rect(self.x, self.y, 100, 100)
         self.left = pygame.Rect(self.x, self.y, 10, 100)
         self.right = pygame.Rect(self.x + 90, self.y, 10, 100)
@@ -393,14 +483,16 @@ class GeomancerColumn: #geomancer column
             self.bottom.y = y
 
     def get_save_data(self):
-        return {'x': self.x, 'y': self.y, 'howlong': time.time() - self.getridof, 'doesexplode': self.doesexplode} #howlong it has been, and whether or not it explodes
+        return {'x': self.x, 'y': self.y,
+                'howlong': time.time() - self.getridof,
+                'doesexplode': self.doesexplode}
 
     def render(self, game):
         self.draw(game)
         if time.time() - self.getridof > 10:
             if self in game.other:
                 game.other.remove(self)
-        if game.player.rect.colliderect(self.left): #don't let things pass it
+        if game.player.rect.colliderect(self.left):  # Don't let things pass it
             game.player.rect.x -= 10
         elif game.player.rect.colliderect(self.right):
             game.player.rect.x += 10
@@ -427,9 +519,11 @@ class GeomancerColumn: #geomancer column
             elif helpful.rect.colliderect(self.bottom):
                 helpful.rect.y += 10
         rem = []
-        for arrow in game.arrows: #destroy arrows that hit it
-            if not issubclass(type(arrow), dungeon_arrows.Arrow): continue
-            if arrow.rect.colliderect(self.rect) or arrow.xrect.colliderect(self.rect):
+        for arrow in game.arrows:  # Destroy arrows that hit it
+            if not issubclass(type(arrow), dungeon_arrows.Arrow):
+                continue
+            if arrow.rect.colliderect(self.rect) or \
+               arrow.xrect.colliderect(self.rect):
                 rem.append(arrow)
         if rem:
             for arrow in rem:
@@ -437,27 +531,36 @@ class GeomancerColumn: #geomancer column
         if self.doesexplode and time.time() - self.getridof > 3:
             if self in game.other:
                 game.other.remove(self)
-            Thread(target=self.explode, args=(game,)).start() #TODO: tidy up (like tnt)
+            Thread(target=self.explode, args=(game,)).start()
 
     def draw(self, game):
-        pygame.draw.rect(game.screen, pygame.Color('dark grey' if not self.doesexplode else 'light grey'), self.rect) #draw dark grey if it does not explode, otherwise light grey
+        pygame.draw.rect(game.screen,
+                         pygame.Color('dark grey' if not self.doesexplode \
+                                      else 'light grey'), self.rect)
 
-    def explode(*args): #blow up
+    def explode(*args):  # Blow up
         self, game = args
         collision_rect = pygame.Rect(self.x - 45*2, self.y - 45*2, 95*2, 95*2)
         pygame.draw.rect(game.screen, pygame.Color('yellow'), collision_rect)
-        pygame.draw.rect(game.screen, pygame.Color('orange'), pygame.Rect(self.x - 25*2, self.y - 25*2, 55*2, 55*2))
-        pygame.draw.rect(game.screen, pygame.Color('red'), pygame.Rect(self.x - 5*2, self.y - 5*2, 15*2, 15*2))
+        pygame.draw.rect(game.screen, pygame.Color('orange'),
+                         pygame.Rect(self.x - 25*2, self.y - 25*2, 55*2, 55*2))
+        pygame.draw.rect(game.screen, pygame.Color('red'),
+                         pygame.Rect(self.x - 5*2, self.y - 5*2, 15*2, 15*2))
         pygame.display.update()
         time.sleep(1)
         self.rect = pygame.Rect(self.x, self.y, 1, 1)
-        for entity in game.enemies + game.helpfuls + game.spawners + [game.player]: #blow it up
+        for entity in game.enemies + game.helpfuls + \
+                    game.spawners + [game.player]:
             if collision_rect.colliderect(entity.rect):
-                if type(entity) in [dungeon_helpful.Golem, dungeon_helpful.Wolf, dungeon_helpful.Bat]: entity.take_damage(self, 15) #since helpfuls need source of damage
-                else: entity.take_damage(15)
+                if type(entity) in [dungeon_helpful.Golem,
+                                    dungeon_helpful.Wolf,
+                                    dungeon_helpful.Bat]:
+                    entity.take_damage(self, 15)
+                else:
+                    entity.take_damage(15)
                 entity.knockback(20, self)
 
-    def move_xy(self, x=0, y=0): #move the column
+    def move_xy(self, x=0, y=0):  # Move the column
         self.rect.x += x
         self.rect.y += y
         self.top.x += x
@@ -469,4 +572,5 @@ class GeomancerColumn: #geomancer column
         self.left.x += x
         self.left.y += y
 
-import dungeon_helpful #gotta be at end to prevent circular import
+
+import dungeon_helpful  # Must be at end to prevent circular import

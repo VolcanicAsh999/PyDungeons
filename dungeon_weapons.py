@@ -1540,7 +1540,7 @@ class DeathCapMushroom(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Death Cap Mushroom'
-        self.maxcooldown = 70
+        self.maxcooldown = 20
         self.pow = 4
 
     def draw(self, game):
@@ -1550,18 +1550,18 @@ class DeathCapMushroom(Artifact):
 
     def use(self, game):
         if super().use(game):
-            if game.player.effects['strength'] < 60:
-                game.player.effects['strength'] = 60
-            if game.player.effects['speed'] < 60:
-                game.player.effects['speed'] = 60
-            if game.player.effects['resistance'] < 60:
-                game.player.effects['resistance'] = 60
+            if game.player.effects['strength'] < 10:
+                game.player.effects['strength'] = 10
+            if game.player.effects['speed'] < 10:
+                game.player.effects['speed'] = 10
+            if game.player.effects['resistance'] < 10:
+                game.player.effects['resistance'] = 10
 
 class FlameQuiver(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Flame Quiver'
-        self.maxcooldown = 10
+        self.maxcooldown = 4
         self.pow = 6
 
     def draw(self, game):
@@ -1578,7 +1578,7 @@ class ExplodingQuiver(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Exploding Quiver'
-        self.maxcooldown = 10
+        self.maxcooldown = 3
         self._arrow = dungeon_arrows.ExplodingArrow
         self.pow = 5
 
@@ -1596,42 +1596,106 @@ class Beacon(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Corrupted Beacon'
-        self.maxcooldown = 40
+        self.maxcooldown = 3
         self.pow = 10
-        self._needed = 30
+        self.using = False
+        #self._needed = 30
 
     def draw(self, game):
         super().draw(game)
         pygame.draw.rect(game.screen, pygame.Color('white'), pygame.Rect(self.x, self.y, 20, 20))
         pygame.draw.rect(game.screen, pygame.Color('purple'), pygame.Rect(self.x + 2, self.y + 2, 16, 16))
 
-    def _draw(self, game):
-        rec1 = pygame.Rect(0, game.player.rect.y - 20, game.screen.get_width(), 75)
-        rec2 = pygame.Rect(game.player.rect.x - 20, 0, 70, game.screen.get_height())
-        pygame.draw.rect(game.screen, pygame.Color('purple'), rec1)
-        pygame.draw.rect(game.screen, pygame.Color('purple'), rec2)
+    def get_ends(self, game):
+        x, y = pygame.mouse.get_pos()
+        px, py = game.player.rect.x, game.player.rect.y
+        lx1, ly1 = x - px, y - py
+        hyp1 = math.sqrt(lx1 ** 2 + ly1 ** 2)
+        angle = math.acos(lx1 / hyp1)
+        lx2 = math.cos(angle) * 5000  # 5000 length
+        ly2 = math.sin(angle) * 5000
+        if y < py:
+            ly2 = -ly2
+        return [(game.player.rect.x, game.player.rect.y), (game.player.rect.x + lx2, game.player.rect.y + ly2)]
 
-    def use(self, game):
+    def _draw(self, game):
+        ends = self.get_ends(game)
+        pygame.draw.line(game.screen, pygame.Color('purple'), ends[0], ends[1], 30)
+
+    def cancel(self):
+        self.using = False
+
+    def use(self, game, a=None):
         if super().use(game):
-            rec1 = pygame.Rect(0, game.player.rect.y - 20, game.screen.get_width(), 75)
-            rec2 = pygame.Rect(game.player.rect.x - 20, 0, 70, game.screen.get_height())
-            pygame.draw.rect(game.screen, pygame.Color('purple'), rec1)
-            pygame.draw.rect(game.screen, pygame.Color('purple'), rec2)
-            pygame.display.update()
-            self.wait(game, 3)
-            for enemy in game.enemies:
-                if pygame.sprite.collide_rect(Help(rec1), enemy) or pygame.sprite.collide_rect(Help(rec2), enemy):
-                    enemy.knockback(30, game.player)
-                    enemy.take_damage(40)
-                    game.player.kills += 1
+            self.using = True
+            while game.player.kills > 0 and self.using:
+                self.wait(game, 0.2)
+                for enemy in game.enemies:
+                    start, end = self.get_ends(game)
+                    dx = (end[0] - start[0]) / 1000
+                    dy = (end[1] - start[1]) / 1000
+                    did = False
+                    for i in range(300):
+                        if did: break
+                        if enemy.rect.x < start[0] + (i*dx) < enemy.rect.x + enemy.rect.w:
+                            for j in range(300):
+                                if did: break
+                                if enemy.rect.y < start[1] + (i*dy) < enemy.rect.y + enemy.rect.h:
+                                    enemy.take_damage(3)
+                                    did = True
+                self.wait(game, 0.2)
+                for enemy in game.enemies:
+                    start, end = self.get_ends(game)
+                    dx = (end[0] - start[0]) / 1000
+                    dy = (end[1] - start[1]) / 1000
+                    did = False
+                    for i in range(300):
+                        if did: break
+                        if enemy.rect.x < start[0] + (i*dx) < enemy.rect.x + enemy.rect.w:
+                            for j in range(300):
+                                if did: break
+                                if enemy.rect.y < start[1] + (i*dy) < enemy.rect.y + enemy.rect.h:
+                                    enemy.take_damage(3)
+                                    did = True
+                self.wait(game, 0.2)
+                for enemy in game.enemies:
+                    start, end = self.get_ends(game)
+                    dx = (end[0] - start[0]) / 1000
+                    dy = (end[1] - start[1]) / 1000
+                    did = False
+                    for i in range(300):
+                        if did: break
+                        if enemy.rect.x < start[0] + (i*dx) < enemy.rect.x + enemy.rect.w:
+                            for j in range(300):
+                                if did: break
+                                if enemy.rect.y < start[1] + (i*dy) < enemy.rect.y + enemy.rect.h:
+                                    enemy.take_damage(3)
+                                    did = True
+                self.wait(game, 0.2)
+                for enemy in game.enemies:
+                    start, end = self.get_ends(game)
+                    dx = (end[0] - start[0]) / 1000
+                    dy = (end[1] - start[1]) / 1000
+                    did = False
+                    for i in range(300):
+                        if did: break
+                        if enemy.rect.x < start[0] + (i*dx) < enemy.rect.x + enemy.rect.w:
+                            for j in range(300):
+                                if did: break
+                                if enemy.rect.y < start[1] + (i*dy) < enemy.rect.y + enemy.rect.h:
+                                    enemy.take_damage(3)
+                                    did = True
+                game.player.kills -= 1
+            self.cooldown = self.maxcooldown
+                    
 
 class LightningRod(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Lightning Rod'
-        self.maxcooldown = 25
+        self.maxcooldown = 5
         self.pow = 7
-        self._needed = 15
+        self._needed = 5
         self._enemies = []
 
     def draw(self, game):
@@ -1646,25 +1710,24 @@ class LightningRod(Artifact):
     def use(self, game):
         if super().use(game):
             for enemy in game.enemies:
-                if math.sqrt(pow(game.player.rect.x - enemy.rect.x, 2) + pow(game.player.rect.y - enemy.rect.y, 2)) < 200:
+                if math.sqrt(pow(game.player.rect.x - enemy.rect.x, 2) + pow(game.player.rect.y - enemy.rect.y, 2)) < 100:
                     self._enemies.append(enemy)
                     pygame.draw.line(game.screen, pygame.Color('yellow'), (enemy.rect.x + 15, enemy.rect.y + 20), (enemy.rect.x + 15 + random.randint(-10, 10), enemy.rect.y - random.randint(250, 300)))
             pygame.display.update()
                 
             self.wait(game, 2)
             for enemy in self._enemies:
-                enemy.take_damage(7)
-                if enemy.effects['fire'] < 30: enemy.effects['fire'] = 30
-            game.player.kills += 10
+                enemy.take_damage(15)
+                if enemy.effects['fire'] < 10: enemy.effects['fire'] = 10
             self._enemies.clear()
 
 class GongWeakening(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Gong of Weakening'
-        self.maxcooldown = 100
+        self.maxcooldown = 20
         self.pow = 8
-        self._needed = 5
+        #self._needed = 5
 
     def draw(self, game):
         super().draw(game)
@@ -1675,16 +1738,16 @@ class GongWeakening(Artifact):
         if super().use(game):
             for enemy in game.enemies:
                 if distance_to(game.player, enemy) < 400:
-                    if enemy.effects['weakness'] < 120: enemy.effects['weakness'] = 120
-                    if enemy.effects['poison'] < 30: enemy.effects['poison'] = 30
+                    if enemy.effects['weakness'] < 20: enemy.effects['weakness'] = 20
+                    if enemy.effects['poison'] < 10: enemy.effects['poison'] = 10
 
 class ShockPowder(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Shock Powder'
-        self.maxcooldown = 40
+        self.maxcooldown = 10
         self.pow = 4
-        self._needed = 10
+        #self._needed = 10
 
     def draw(self, game):
         super().draw(game)
@@ -1704,9 +1767,9 @@ class TotemRegeneration(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Totem of Regeneration'
-        self.maxcooldown = 50
+        self.maxcooldown = 10
         self.pow = 3
-        self._needed = 3
+        #self._needed = 3
 
     def draw(self, game):
         super().draw(game)
@@ -1715,16 +1778,16 @@ class TotemRegeneration(Artifact):
 
     def use(self, game):
         if super().use(game):
-            if game.player.effects['regeneration'] < 30:
-                game.player.effects['regeneration'] = 30
+            if game.player.effects['regeneration'] < 20:
+                game.player.effects['regeneration'] = 20
 
 class BootsOfSwiftness(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Boots of Swiftness'
-        self.maxcooldown = 30
+        self.maxcooldown = 10
         self.pow = 3
-        self._needed = 4
+        #self._needed = 4
 
     def draw(self, game):
         super().draw(game)
@@ -1733,16 +1796,16 @@ class BootsOfSwiftness(Artifact):
 
     def use(self, game):
         if super().use(game):
-            if game.player.effects['speed'] < 20:
-                game.player.effects['speed'] = 20
+            if game.player.effects['speed'] < 7:
+                game.player.effects['speed'] = 7
 
 class TotemOfShielding(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Totem of Shielding'
-        self.maxcooldown = 50
+        self.maxcooldown = 15
         self.pow = 2
-        self._needed = 10
+        #self._needed = 10
 
     def draw(self, game):
         super().draw(game)
@@ -1750,17 +1813,17 @@ class TotemOfShielding(Artifact):
 
     def use(self, game):
         if super().use(game):
-            if game.player.effects['resistance'] < 40:
-                game.player.effects['resistance'] = 40
+            if game.player.effects['resistance'] < 10:
+                game.player.effects['resistance'] = 10
             game.player.hp += 10
 
 class SoulHealer(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Soul Healer'
-        self.maxcooldown = 20
+        self.maxcooldown = 10
         self.pow = 5
-        self._needed = 20
+        self._needed = 5
 
     def draw(self, game):
         super().draw(game)
@@ -1770,15 +1833,14 @@ class SoulHealer(Artifact):
         if super().use(game):
             for i in range(random.randint(5, 20)):
                 game.player.hp += random.randint(0, 3)
-                game.player.kills += random.randint(0, 2)
 
 class Harvester(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Harvester'
-        self.maxcooldown = 30
+        self.maxcooldown = 10
         self.pow = 8
-        self._needed = 20
+        self._needed = 7
         self._enemies = []
 
     def draw(self, game):
@@ -1811,9 +1873,9 @@ class LightFeather(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Light Feather'
-        self.maxcooldown = 20
+        self.maxcooldown = 5
         self.pow = 7
-        self._needed = 10
+        #self._needed = 10
         self._enemies = []
 
     def draw(self, game):
@@ -1840,16 +1902,16 @@ class LightFeather(Artifact):
             for enemy in self._enemies:
                 enemy.take_damage(5)
                 enemy.knockback(10, game.player)
-                if enemy.effects['slowness'] < 30: enemy.effects['slowness'] = 30
+                if enemy.effects['slowness'] < 3: enemy.effects['slowness'] = 3
             self._enemies.clear()
 
 class IronHideAmulet(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Iron Hide Amulet'
-        self.maxcooldown = 90
+        self.maxcooldown = 15
         self.pow = 4
-        self._needed = 2
+        #self._needed = 2
 
     def draw(self, game):
         super().draw(game)
@@ -1858,15 +1920,15 @@ class IronHideAmulet(Artifact):
 
     def use(self, game):
         if super().use(game):
-            if game.player.effects['resistance'] < 80: game.player.effects['resistance'] = 80
+            if game.player.effects['resistance'] < 10: game.player.effects['resistance'] = 10
 
 class WindHorn(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Wind Horn'
-        self.maxcooldown = 40
+        self.maxcooldown = 5
         self.pow = 6
-        self._needed = 10
+        #self._needed = 10
 
     def draw(self, game):
         super().draw(game)
@@ -1890,9 +1952,9 @@ class GolemKit(Artifact):
     def __init__(self):
         super().__init__()
         self.name = 'Golem Kit'
-        self.maxcooldown = 150
+        self.maxcooldown = 15
         self.pow = 15
-        self._needed = 1
+        #self._needed = 1
         self.col = pygame.Color(250, 250, 250, 255)
 
     def draw(self, game):
@@ -1912,7 +1974,7 @@ class TastyBone(Artifact):
         self.name = 'Tasty Bone'
         self.maxcooldown = 1
         self.pow = 13
-        self._needed = 1
+        #self._needed = 1
         self._wolf = None
         self._ready = True
 
@@ -1922,7 +1984,7 @@ class TastyBone(Artifact):
             self._isdead()
 
     def _isdead(self):
-        self.cooldown = 30
+        self.cooldown = 10
         self._ready = True
 
     def draw(self, game):

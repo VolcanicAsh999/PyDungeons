@@ -3,7 +3,7 @@ import pygame
 import threading
 import time
 import random
-import logger
+import dungeon_logger as logger
 import string
 
 pygame.mixer.pre_init()
