@@ -326,7 +326,7 @@ class Wraith(BaseEnemy):
         self.hp = self.hpmax
         self.delay_move = 5
         self.speed = 5
-        self.delay_damage = 50
+        self.delay_damage = 500
         self.damage = 4
         self.xp_drop = 0.5
         self.text = pygame.font.SysFont('', 20).render(
@@ -341,7 +341,7 @@ class Wraith(BaseEnemy):
     def render(self, game):
         super().render(game)
         if self.delaydamage == 0 and self.speed > 0:
-            player = self.get_target(game)
+            '''player = self.get_target(game)
             px, py = player.rect.x, player.rect.y
             sx, sy = self.rect.x, self.rect.y
             if px < sx:
@@ -354,7 +354,12 @@ class Wraith(BaseEnemy):
                 yo = min(py - sy, 300)
             offset = (xo, yo)
             game.other.append(dungeon_misc.WraithFlames(
-                self.rect.x + offset[0], self.rect.y + offset[1]))
+                self.rect.x + offset[0], self.rect.y + offset[1]))'''
+            player = self.get_target(game)
+            px, py = player.rect.x, player.rect.y
+            for i in (-30, 0, 30):
+                for j in (-30, 0, 30):
+                    game.other.append(dungeon_misc.WraithFlames(px + i, py + j))
 
     def draw(self, game):
         pygame.draw.rect(game.screen, pygame.Color('dark blue'),
@@ -572,9 +577,7 @@ class RedstoneGolem(BaseEnemy):
             pygame.display.update()
             
             def distance(obj, me):
-                xdis = obj.rect.centerx - me.rect.centerx
-                ydis = obj.rect.centery - me.rect.centery
-                return math.sqrt(math.pow(xdis, 2) + math.pow(ydis, 2))
+                return math.dist((obj.rect.centerx, obj.rect.centery), (me.rect.centerx, me.rect.centery))
             
             for entity in [game.player] + game.helpfuls:
                 if distance(self, entity) < 3 * i:
@@ -623,9 +626,7 @@ class RedstoneMonstrosity(RedstoneGolem):
                                (self.rect.x + 70, self.rect.y + 90), 3 * i, 1)
             pygame.display.update()
             def distance(obj, me):
-                xdis = obj.rect.centerx - me.rect.centerx
-                ydis = obj.rect.centery - me.rect.centery
-                return math.sqrt(math.pow(xdis, 2) + math.pow(ydis, 2))
+                return math.dist((obj.rect.centerx, obj.rect.centery), (me.rect.centerx, me.rect.centery))
             for entity in [game.player] + game.helpfuls:
                 if distance(self, entity) < 3 * i:
                     if entity != game.player:
@@ -913,6 +914,70 @@ class ConjuredSlime(RedstoneCube):
                 dungeon_misc.ConjuredProjectile(self.rect.x, self.rect.y))
 
 
+class Piglin(BaseSkeleton):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.maintype = 'piglin'
+        self.secondtype = 'living'
+        self.color_body = pygame.Color('brown')
+        self.color_head = pygame.Color('pink')
+        self.color_arm = pygame.Color('pink')
+        self.weapon = dungeon_weapons.Crossbow()
+        self.delay_damage = 100
+        self.hp = 24
+        self.name = 'Piglin'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.xp_drop = 0.1
+        self.hpmax = self.hp
+        self.speed = 3
+        self.arrow = {'type': dungeon_arrows.Arrow,
+                      'damage': 4, 'knockback': 30}
+
+    def draw(self, game):
+        super().draw(game)
+        self.weapon.render(self.rect.x + 5, self.rect.y + 20, game)
+
+
+class PiglinSword(BaseEnemy):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.maintype = 'piglin'
+        self.secondtype = 'living'
+        self.color_body = pygame.Color('brown')
+        self.color_head = pygame.Color('pink')
+        self.color_arm = pygame.Color('pink')
+        self.weapon = dungeon_weapons.GoldenSword()
+        self.damage = 5
+        self.xp_drop = 0.1
+        self.hp = 24
+        self.hpmax = self.hp
+        self.speed = 3
+        self.delay_damage = 10
+        self.name = 'Piglin'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+
+    def draw(self, game):
+        super().draw(game)
+        self.weapon.render(self.rect.x + 25, self.rect.y + 20, game)
+
+
+class PiglinBrute(PiglinSword):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.weapon = dungeon_weapons.GoldenAxe()
+        self.damage = 11
+        self.xp_drop = 0.5
+        self.hp = 50
+        self.hpmax = self.hp
+        self.speed = 5
+        self.delay_damage = 5
+        self.name = 'Piglin Brute'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+
+
 class BaseIllager(BaseEnemy):    
     def __init__(self, x, y):
         super().__init__(x, y)
@@ -996,8 +1061,7 @@ class Creeper(BaseEnemy):
     def render(self, game):
         super().render(game)
         player = self.get_target(game)
-        if math.sqrt(pow(player.rect.x - self.rect.x, 2) +
-                     pow(player.rect.y - self.rect.y, 2)) <= 100:
+        if math.dist((player.rect.x, player.rect.y), (self.rect.x, self.rect.y)) <= 100:
             if not self.fused:
                 self.fused = True
                 self.delay = time.time()
@@ -1460,8 +1524,7 @@ class Necromancer(BaseZombie):
 
         for enemy in game.enemies:
             if ((enemy.maintype == 'skeleton' or enemy.maintype == 'zombie')
-               and math.sqrt(pow(self.rect.x - enemy.rect.x, 2) +
-                         pow(self.rect.y - enemy.rect.y, 2)) < 300):
+               and math.dist((self.rect.x, self.rect.y), (game.player.rect.x, game.player.rect.y)) < 300):
                 if enemy.effects['strength'] < 1:
                     enemy.effects['strength'] = 1
                 if enemy.effects['speed'] < 1:
@@ -1826,6 +1889,7 @@ class Iceologer(BaseIllager):
         self.weapon = type('IceologerWand',
                            (object,),
                            {'damage': 0, 'render': lambda game: ...})()
+        self.body_color = pygame.Color('blue')
         self.fix()
 
     def attack(self, game):
@@ -1872,8 +1936,7 @@ class Enchanter(BaseIllager):
         for i in list:
             if i is obj:
                 continue
-            dist = math.sqrt(pow(i.rect.x - obj.rect.x, 2)
-                             + pow(i.rect.y - obj.rect.y, 2))
+            dist = math.dist((i.rect.x, i.rect.y), (self.rect.x, self.rect.y))
             if dist < distance:
                 distance = dist
                 closest = i
@@ -2156,12 +2219,12 @@ class TheCauldron(BaseEnemy):
                                      (self.rect.x + self.rect.width, y), 3)
 
 
-easy = [Zombie, Skeleton, Stray, Slime, Creeper, Spider, BabyZombie]
+easy = [Zombie, Skeleton, Stray, Slime, Creeper, Spider, BabyZombie, Piglin]
 medium = [Husk, Drowned, MossSkeleton, SpeedyZombie, Vindicator,
           Pillager, Enchanter, RoyalGuard, ArmoredZombie,
-          ChickenJockey, CaveSpider, Iceologer]
+          ChickenJockey, CaveSpider, Iceologer, PiglinSword]
 hard = [PlantZombie, FlamingSkeleton, Evoker, Geomancer,
-        ChickenJockeyTower, Witch, Enderman]
+        ChickenJockeyTower, Witch, Enderman, PiglinBrute]
 very_hard = [Necromancer, SkeletonHorse, Wraith, RedstoneGolem]
 actual_boss = [NamelessOne, RedstoneMonstrosity, TheCauldron]
 spawners = [ZombieSpawner, SkeletonSpawner, SpiderSpawner, CreeperSpawner]

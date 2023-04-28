@@ -2,8 +2,10 @@ import pygame
 
 WIDTH, HEIGHT = 20, 20
 
+
 class Wall:
     def __repr__(self): return f'Wall({self.rect.x}, {self.rect.y})'
+
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, WIDTH, HEIGHT)
         self.color = pygame.Color('dark gray')
@@ -14,6 +16,7 @@ class Wall:
     def draw(self, game):
         pygame.draw.rect(game.screen, self.color, self.rect)
 
+
 def genwalls(width=2000, height=1000):
     walls = []
     for w in [0, width]:
@@ -23,6 +26,7 @@ def genwalls(width=2000, height=1000):
         for h in [0, height]:
             walls.append(Wall(w, h))
     return walls
+
 
 def genfromlist(poses):
     walls = []

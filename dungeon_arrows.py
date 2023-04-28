@@ -27,8 +27,7 @@ class Arrow:
         self.safe = safe
 
         if rot is None:  # figure out the dx and dy needed (not my invention)
-            r = math.sqrt(pow(self.target[0] - self.x, 2) +
-                          pow(self.target[1] - self.y, 2))
+            r = math.dist(self.target, self.start)
 
             if r > 0:
                 if r >= self.speed:

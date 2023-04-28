@@ -1,3 +1,4 @@
+import dungeon_resloader
 import os
 import pygame
 import threading
@@ -9,9 +10,9 @@ import string
 pygame.mixer.pre_init()
 pygame.init()
 
-RUN_PDPY_SERVER = False #uses extra resources, wip
+RUN_PDPY_SERVER = False  # uses extra resources, wip
 
-USE_MODS = False #leave false, wip
+USE_MODS = False  # leave false, wip
 
 RSAVE = True
 WSAVE = True
@@ -19,6 +20,8 @@ WSAVE = True
 DO_FULL_SCREEN = False
 
 FRIENDLY_MODE = True
+
+DIFFICULTY = 'Default'
 
 MINUTES_PER_SAVE = 3
 
@@ -56,6 +59,7 @@ CURSOR = (
     "   XX   ",
 )"""
 
+
 def initcursor():
     logger.info('Initializing the cursor...', 'ResourceLoader')
     if not USE_CUSTOM_CURSOR:
@@ -65,14 +69,15 @@ def initcursor():
     hotspot = None
     for y, line in enumerate(CURSOR):
         for x, char in enumerate(line):
-            if char in ["x", "," , "O"]:
+            if char in ["x", ",", "O"]:
                 hotspot = x, y
                 break
         if hotspot is not None:
             break
     if hotspot is None:
         pygame.mouse.set_cursor(BACKUP_CURSOR)
-        logger.error('Error setting cursor: no hotspot defined', 'ResourceLoader')
+        logger.error('Error setting cursor: no hotspot defined',
+                     'ResourceLoader')
         logger.info('Using normal cursor!', 'ResourceLoader')
         return
     s2 = []
@@ -87,6 +92,7 @@ def initcursor():
         logger.error('Error setting cursor: ' + e.args[0], 'ResourceLoader')
         logger.info('Using normal cursor!', 'ResourceLoader')
 
+
 SPLASH_SCREEN_TEXT = ['Hello!',
                       'Password12345 is a bad password',
                       'This text is so small you can\'t see it very well',
@@ -99,51 +105,63 @@ SPLASH_SCREEN_SIZE = {'Hello!': 35,
                       }
 
 BASEPATH = os.path.join(os.environ.get('APPDATA'), '.pydungeons')
-RESOURCE_PATH = os.path.join(BASEPATH, 'resources')
-FONT_PATH = os.path.join(RESOURCE_PATH, 'arfmoochikncheez.ttf')
-LOG_PATH = os.path.join(BASEPATH, 'logs')
-CRASH_REPORT_PATH = os.path.join(BASEPATH, 'crash-reports')
-SCRIPTS_PATH = os.path.join(BASEPATH, 'scripts')
 
-_warn = False
-if not os.path.exists(os.path.join(BASEPATH, 'logs')):
-    os.makedirs(os.path.join(BASEPATH, 'logs'))
-    _warn = True
-logger.init()
-if not os.path.exists(BASEPATH):
-    os.makedirs(BASEPATH)
-    logger.critical('Base path is not available, creating it now...', 'ResourceLoader')
-if _warn:
-    logger.critical('Base path is not available, creating it now...', 'ResourceLoader')
-    logger.error('Logs path is not available, creating it now...', 'ResourceLoader')
-if not os.path.exists(os.path.join(BASEPATH, 'resources')):
-    os.makedirs(os.path.join(BASEPATH, 'resources'))
-    logger.critical('Resource path is not available, creating it now...', 'ResourceLoader')
-if not os.path.exists(os.path.join(BASEPATH, 'crash-reports')):
-    os.makedirs(os.path.join(BASEPATH, 'crash-reports'))
-    logger.error('Crash reports path is not available, creating it now...', 'ResourceLoader')
-for i in ['screenshots', 'saves', 'mods', 'backups', 'scripts']:
-    if not os.path.exists(os.path.join(BASEPATH, i)):
-        logger.error(string.capwords(i) + ' path is not available, creating it now...', 'ResourceLoader')
-        os.makedirs(os.path.join(BASEPATH, i))
-import dungeon_resloader
-dungeon_resloader.check()
+def load(basepath):
+    global BASEPATH, RESOURCE_PATH, FONT_PATH, LOG_PATH, CRASH_REPORT_PATH, SCRIPTS_PATH, bg1, bg2, bg3, bg4, zombie_die, zombie_groan, chest_loot, bow_shoot, arrow_hit, weapon_swing, weapon_hit
+    RESOURCE_PATH = os.path.join(BASEPATH, 'resources')
+    FONT_PATH = os.path.join(RESOURCE_PATH, 'arfmoochikncheez.ttf')
+    LOG_PATH = os.path.join(BASEPATH, 'logs')
+    CRASH_REPORT_PATH = os.path.join(BASEPATH, 'crash-reports')
+    SCRIPTS_PATH = os.path.join(BASEPATH, 'scripts')
 
-bg1 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '1.wav'))
-bg2 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '2.wav'))
-bg3 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '3.wav'))
-bg4 = None #pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '4.wav'))
+    _warn = False
+    if not os.path.exists(os.path.join(BASEPATH, 'logs')):
+        os.makedirs(os.path.join(BASEPATH, 'logs'))
+        _warn = True
+    logger.init()
+    if not os.path.exists(BASEPATH):
+        os.makedirs(BASEPATH)
+        logger.critical(
+            'Base path is not available, creating it now...', 'ResourceLoader')
+    if _warn:
+        logger.critical(
+            'Base path is not available, creating it now...', 'ResourceLoader')
+        logger.error('Logs path is not available, creating it now...',
+                     'ResourceLoader')
+    if not os.path.exists(os.path.join(BASEPATH, 'resources')):
+        os.makedirs(os.path.join(BASEPATH, 'resources'))
+        logger.critical(
+            'Resource path is not available, creating it now...', 'ResourceLoader')
+    if not os.path.exists(os.path.join(BASEPATH, 'crash-reports')):
+        os.makedirs(os.path.join(BASEPATH, 'crash-reports'))
+        logger.error(
+            'Crash reports path is not available, creating it now...', 'ResourceLoader')
+    for i in ['screenshots', 'saves', 'mods', 'backups', 'scripts']:
+        if not os.path.exists(os.path.join(BASEPATH, i)):
+            logger.error(string.capwords(
+                i) + ' path is not available, creating it now...', 'ResourceLoader')
+            os.makedirs(os.path.join(BASEPATH, i))
+    dungeon_resloader.check()
 
-zombie_groan = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'zombie_groan.ogg'))
-zombie_die = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'zombie_death.ogg'))
+    bg1 = None  # pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '1.wav'))
+    bg2 = None  # pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '2.wav'))
+    bg3 = None  # pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '3.wav'))
+    bg4 = None  # pygame.mixer.Sound(os.path.join(RESOURCE_PATH, '4.wav'))
 
-chest_loot = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'chestloot.wav'))
+    zombie_groan = pygame.mixer.Sound(
+        os.path.join(RESOURCE_PATH, 'zombie_groan.ogg'))
+    zombie_die = pygame.mixer.Sound(
+        os.path.join(RESOURCE_PATH, 'zombie_death.ogg'))
 
-bow_shoot = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'bow_shoot.ogg'))
-arrow_hit = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'arrow_hit.ogg'))
+    chest_loot = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'chestloot.wav'))
 
-weapon_swing = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'weapon_swing.ogg'))
-weapon_hit = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'weapon_hit.ogg'))
+    bow_shoot = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'bow_shoot.ogg'))
+    arrow_hit = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'arrow_hit.ogg'))
+
+    weapon_swing = pygame.mixer.Sound(
+        os.path.join(RESOURCE_PATH, 'weapon_swing.ogg'))
+    weapon_hit = pygame.mixer.Sound(os.path.join(RESOURCE_PATH, 'weapon_hit.ogg'))
+
 
 def bgsound():
     bgsounds = [bg1, bg2, bg3, bg4]
@@ -156,6 +174,7 @@ def bgsound():
             time.sleep(bg.get_length())
         random.shuffle(bgsounds)
 
+
 def start():
     if bg1 and bg2 and bg3 and bg4:
         music_thread = threading.Thread(target=bgsound, daemon=True)
@@ -163,4 +182,5 @@ def start():
         music_thread.start()
         logger.info('Music thread succesfully started!', 'ResourceLoader')
     else:
-        logger.error('Music missing, music thread not starting...', 'ResourceLoader')
+        logger.error('Music missing, music thread not starting...',
+                     'ResourceLoader')

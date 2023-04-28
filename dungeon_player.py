@@ -11,9 +11,11 @@ import dungeon_misc
 
 pygame.init()
 
+
 class HitBox:
     def __init__(self, x, y):
         self.rect = pygame.rect.Rect(x, y, 1, 1)
+
     def update(self, x, y, reach):
         self.rect = pygame.Rect(x - reach, y - reach, reach * 2, reach * 2)
 
@@ -35,7 +37,8 @@ class Player:
         self.armor = None
         self.a1 = self.a2 = self.a3 = None
         self.ia1 = self.ia2 = self.ia3 = 0
-        self.effects = {'speed': 0, 'slowness': 0, 'strength': 0, 'weakness': 0, 'resistance': 0, 'poison': 0, 'regeneration': 0, 'fire': 0}
+        self.effects = {'speed': 0, 'slowness': 0, 'strength': 0, 'weakness': 0,
+                        'resistance': 0, 'poison': 0, 'regeneration': 0, 'fire': 0}
         self.cooldown = 0
         self.rcooldown = 0
         self.delaymove = 0
@@ -68,7 +71,7 @@ class Player:
         if self.hp <= 0:
             self.die(game)
             return
-        
+
         if self.cooldown > 0:
             self.cooldown -= 1
 
@@ -86,12 +89,14 @@ class Player:
                 self.hp += 1
             if self.effects['fire'] > 0 and self.effects['fire'] % 2 == 0:
                 self.hp -= 1
-                
+
         for effect in self.effects.keys():
             if self.effects[effect] > 0 and effect != 'fire':
-                particle.particle(effect, self.rect.x, self.rect.x + 30, self.rect.y, self.rect.y + 35, game)
+                particle.particle(
+                    effect, self.rect.x, self.rect.x + 30, self.rect.y, self.rect.y + 35, game)
 
-        if self.hp > 40: self.hp = 40
+        if self.hp > 40:
+            self.hp = 40
 
         for artifact in self.artifacts:
             if artifact:
@@ -119,18 +124,21 @@ class Player:
         if self.armor:
             self.armor.salvage(self)
             self.armors.remove(self.armor)
-            #self.armor = None
+            # self.armor = None
             self.nextarmor(game, amount=0)
         self.update_power()
 
     def increase(self):
         increase = 0
         if self.weapon:
-            increase += (self.weapon._speed // 2) if self.weapon._speed > 0 else self.weapon._speed
+            increase += (self.weapon._speed //
+                         2) if self.weapon._speed > 0 else self.weapon._speed
         if self.range:
-            increase += (self.range._speed // 2) if self.range._speed > 0 else self.range._speed
+            increase += (self.range._speed //
+                         2) if self.range._speed > 0 else self.range._speed
         if self.armor:
-            increase += (self.armor._speed // 2) if self.armor._speed > 0 else self.armor._speed
+            increase += (self.armor._speed //
+                         2) if self.armor._speed > 0 else self.armor._speed
         return increase
 
     def move(self, game, x=0, y=0):
@@ -138,15 +146,23 @@ class Player:
         x2, y2 = x, y
         if x != 0:
             if self.effects['speed'] > 0:
-                if x > 0: x += 1
-                elif x < 0: x -= 1
+                if x > 0:
+                    x += 1
+                elif x < 0:
+                    x -= 1
             if self.effects['slowness'] > 0:
-                if x > 0: x -= 1
-                elif x < 0: x += 1
-            if x >= 0: x += increase
-            if x < 0: x -= increase
-            if x2 < 0 and x >= 0: x = -1
-            if x2 > 0 and x <= 0: x = 1
+                if x > 0:
+                    x -= 1
+                elif x < 0:
+                    x += 1
+            if x >= 0:
+                x += increase
+            if x < 0:
+                x -= increase
+            if x2 < 0 and x >= 0:
+                x = -1
+            if x2 > 0 and x <= 0:
+                x = 1
             self.rect.x += x
             '''for wall in game.walls:
                 """if self.rect.colliderect(wall.rect):
@@ -155,18 +171,26 @@ class Player:
                 if (self.rect.x + 20 > wall.rect.x) and (self.rect.x - 5 < wall.rect.x + 20) and (self.rect.y + 25 > wall.rect.y) and (self.rect.y - 5 < wall.rect.y + 20):
                     self.rect.x -= x
                     return'''
-            #self._move(game, x, y)
+            # self._move(game, x, y)
         if y != 0:
             if self.effects['speed'] > 0:
-                if y > 0: y += 1
-                elif y < 0: y -= 1
+                if y > 0:
+                    y += 1
+                elif y < 0:
+                    y -= 1
             if self.effects['slowness'] > 0:
-                if y > 0: y -= 1
-                elif y < 0: y += 1
-            if y >= 0: y += increase
-            if y < 0: y -= increase
-            if y2 < 0 and y >= 0: y = -1
-            if y2 > 0 and y <= 0: y = 1
+                if y > 0:
+                    y -= 1
+                elif y < 0:
+                    y += 1
+            if y >= 0:
+                y += increase
+            if y < 0:
+                y -= increase
+            if y2 < 0 and y >= 0:
+                y = -1
+            if y2 > 0 and y <= 0:
+                y = 1
             self.rect.y += y
             '''for wall in game.walls:
                 """if self.rect.colliderect(wall.rect):
@@ -175,7 +199,7 @@ class Player:
                 if (self.rect.y + 25 > wall.rect.y) and (self.rect.y - 5 < wall.rect.y + 20) and (self.rect.x + 20 > wall.rect.x) and (self.rect.x - 5 < wall.rect.x + 20):
                     self.rect.y -= y
                     return'''
-            #self._move(game, x, y)
+            # self._move(game, x, y)
 
     """def _move(self, game, x=0, y=0):
         if x != 0:
@@ -209,7 +233,7 @@ class Player:
                     return'''
                 if (self.rect.y + 25 > wall.rect.y) and (self.rect.y - 5 < wall.rect.y + 20) and (self.rect.x + 20 > wall.rect.x) and (self.rect.x - 5 < wall.rect.x + 20):
                     self.rect.y -= y
-                    return""" #makes movement choppy
+                    return"""  # makes movement choppy
 
     def attack(self, game):
         damage = 2
@@ -247,95 +271,132 @@ class Player:
         for i in game.spawners:
             if pygame.sprite.collide_rect(self.colliderect, i) and amount < num:
                 i.take_damage(1)
-                amount += 1 #doesn't matter with weapon or not cause they die from any damage
+                amount += 1  # doesn't matter with weapon or not cause they die from any damage
         self.cooldown = cooldown * random.randint(11, 15)
-        if self.attack_speed != 0: self.cooldown -= self.attack_speed * 13
+        if self.attack_speed != 0:
+            self.cooldown -= self.attack_speed * 13
         dungeon_settings.weapon_swing.play()
 
     def take_damage(self, damage):
+        damage += (1 - self.dif) * 3
         if self.effects['resistance'] > 0:
             damage -= 2
         if self.armor:
             damage -= self.armor._protect()
-        if damage < 0: damage = 0
+        if damage < 0:
+            damage = 0
         self.hp -= damage
 
     def armor_use(self, enemy, game):
-        if self.armor: self.armor.do_special(self, enemy, game)
+        if self.armor:
+            self.armor.do_special(self, enemy, game)
 
     def knockback(self, knockback, player):
         if knockback > 0:
             knockback += random.randint(-5, 5)
             for knock in range(int(knockback)):
-                if player.rect.x > self.rect.x: self.rect.x -= 1
-                if player.rect.x < self.rect.x: self.rect.x += 1
-                if player.rect.y < self.rect.y: self.rect.y += 1
-                if player.rect.y > self.rect.y: self.rect.y -= 1
+                if player.rect.x > self.rect.x:
+                    self.rect.x -= 1
+                if player.rect.x < self.rect.x:
+                    self.rect.x += 1
+                if player.rect.y < self.rect.y:
+                    self.rect.y += 1
+                if player.rect.y > self.rect.y:
+                    self.rect.y -= 1
 
         elif knockback < 0:
             knockback += random.randint(-5, 5)
             for knock in range(int(abs(knockback))):
-                if player.rect.x > self.rect.x: self.rect.x += 1
-                if player.rect.x < self.rect.x: self.rect.x -= 1
-                if player.rect.y < self.rect.y: self.rect.y -= 1
-                if player.rect.y > self.rect.y: self.rect.y += 1
+                if player.rect.x > self.rect.x:
+                    self.rect.x += 1
+                if player.rect.x < self.rect.x:
+                    self.rect.x -= 1
+                if player.rect.y < self.rect.y:
+                    self.rect.y -= 1
+                if player.rect.y > self.rect.y:
+                    self.rect.y += 1
 
     def draw(self, game):
-        pygame.draw.rect(game.screen, pygame.Color('blue'), pygame.Rect(self.rect.x + 10, self.rect.y + 15, 10, 15)) #body
-        pygame.draw.circle(game.screen, pygame.Color('brown'), (self.rect.x + 15, self.rect.y + 10), 5) #head
-        pygame.draw.line(game.screen, pygame.Color('brown'), (self.rect.x + 10, self.rect.y + 15), (self.rect.x + 5, self.rect.y + 20), 3) #arm
-        pygame.draw.line(game.screen, pygame.Color('brown'), (self.rect.x + 20, self.rect.y + 15), (self.rect.x + 25, self.rect.y + 20), 3) #arm
-        health_rect = pygame.Rect(self.rect.x - 5, self.rect.y - 5, int(self.hp), 8)
-        pygame.draw.rect(game.screen, pygame.Color('red'), health_rect) #hp bar
-        
+        pygame.draw.rect(game.screen, pygame.Color('blue'), pygame.Rect(
+            self.rect.x + 10, self.rect.y + 15, 10, 15))  # body
+        pygame.draw.circle(game.screen, pygame.Color(
+            'brown'), (self.rect.x + 15, self.rect.y + 10), 5)  # head
+        pygame.draw.line(game.screen, pygame.Color('brown'), (self.rect.x +
+                         10, self.rect.y + 15), (self.rect.x + 5, self.rect.y + 20), 3)  # arm
+        pygame.draw.line(game.screen, pygame.Color('brown'), (self.rect.x + 20,
+                         self.rect.y + 15), (self.rect.x + 25, self.rect.y + 20), 3)  # arm
+        health_rect = pygame.Rect(
+            self.rect.x - 5, self.rect.y - 5, int(self.hp), 8)
+        pygame.draw.rect(game.screen, pygame.Color(
+            'red'), health_rect)  # hp bar
+
         if self.weapon:
-            self.weapon.render(self.rect.x + 25, self.rect.y + 20, game) #weapon image
-            self.weapon.show_info(game.screen.get_width() - 100, game.screen.get_height() - 10, game) #weapon info
+            self.weapon.render(
+                self.rect.x + 25, self.rect.y + 20, game)  # weapon image
+            self.weapon.show_info(game.screen.get_width(
+            ) - 100, game.screen.get_height() - 10, game)  # weapon info
 
         if self.range:
-            self.range.render(self.rect.x + 5, self.rect.y + 20, game) #range image
-            self.range.show_info(game.screen.get_width() - 300, game.screen.get_height() - 10, game) #range info
+            self.range.render(self.rect.x + 5, self.rect.y +
+                              20, game)  # range image
+            self.range.show_info(game.screen.get_width(
+            ) - 300, game.screen.get_height() - 10, game)  # range info
 
         if self.consumable:
-            self.consumable.render(self.rect.x, self.rect.y - 15, game) #consumable image (and text)
+            # consumable image (and text)
+            self.consumable.render(self.rect.x, self.rect.y - 15, game)
 
         if self.armor:
-            self.armor.render(self.rect.x + 10, self.rect.y + 15, game) #armor image
-            self.armor.show_info(game.screen.get_width() - 500, game.screen.get_height() - 10, game) #armor info
+            self.armor.render(self.rect.x + 10, self.rect.y +
+                              15, game)  # armor image
+            self.armor.show_info(game.screen.get_width(
+            ) - 500, game.screen.get_height() - 10, game)  # armor info
 
         if self.a1:
-            self.a1.render(100, 10, game) #a1 image
+            self.a1.render(100, 10, game)  # a1 image
 
         if self.a2:
-            self.a2.render(200, 10, game) #a2 image
+            self.a2.render(200, 10, game)  # a2 image
 
         if self.a3:
-            self.a3.render(300, 10, game) #a3 image
-            
-        emerald_text = pygame.font.SysFont('', 20).render(str(self.emeralds), 1, pygame.Color('light green'))
-        game.screen.blit(emerald_text, (20, 10)) #emeralds
-        
-        level_text = pygame.font.SysFont('', 20).render(str(int(self.level)), 1, pygame.Color('green'))
-        game.screen.blit(level_text, (game.screen.get_width() // 2, 5)) #player level
+            self.a3.render(300, 10, game)  # a3 image
 
-        kill_text = pygame.font.SysFont('', 20).render(str(self.kills), 1, pygame.Color('purple'))
-        game.screen.blit(kill_text, (20, 30)) #kills
+        emerald_text = pygame.font.SysFont('', 20).render(
+            str(self.emeralds), 1, pygame.Color('light green'))
+        game.screen.blit(emerald_text, (20, 10))  # emeralds
 
-        arrow_text = pygame.font.SysFont('', 20).render(str(self.arrows), 1, pygame.Color('brown'))
-        game.screen.blit(arrow_text, (20, 50)) #arrows
+        level_text = pygame.font.SysFont('', 20).render(
+            str(int(self.level)), 1, pygame.Color('green'))
+        # player level
+        game.screen.blit(level_text, (game.screen.get_width() // 2, 5))
 
-        power_text = pygame.font.SysFont('', 20).render('Power: ' + str(self.power), 1, pygame.Color('white'))
-        game.screen.blit(power_text, (20, 70)) #power
+        kill_text = pygame.font.SysFont('', 20).render(
+            str(self.kills), 1, pygame.Color('purple'))
+        game.screen.blit(kill_text, (20, 30))  # kills
 
-        pygame.draw.polygon(game.screen, pygame.Color('green'), [(5, 10), (5, 20), (10, 25), (15, 20), (15, 10), (10, 5)]) #emerald pic
+        arrow_text = pygame.font.SysFont('', 20).render(
+            str(self.arrows), 1, pygame.Color('brown'))
+        game.screen.blit(arrow_text, (20, 50))  # arrows
 
-        pygame.draw.line(game.screen, pygame.Color('brown'), (5, 50), (15, 60), 3)
-        pygame.draw.circle(game.screen, pygame.Color('light grey'), (5, 50), 3) #arrow pic
+        power_text = pygame.font.SysFont('', 20).render(
+            'Power: ' + str(self.power), 1, pygame.Color('white'))
+        game.screen.blit(power_text, (20, 70))  # power
+
+        pygame.draw.polygon(game.screen, pygame.Color('green'), [
+                            (5, 10), (5, 20), (10, 25), (15, 20), (15, 10), (10, 5)])  # emerald pic
+
+        pygame.draw.line(game.screen, pygame.Color(
+            'brown'), (5, 50), (15, 60), 3)
+        pygame.draw.circle(game.screen, pygame.Color(
+            'light grey'), (5, 50), 3)  # arrow pic
 
         if self.effects['fire'] > 0:
-            pygame.draw.line(game.screen, pygame.Color('red'), (self.rect.x + 10, self.rect.y + 24), (self.rect.x + 7, self.rect.y + 5), 4)
-            pygame.draw.line(game.screen, pygame.Color('red'), (self.rect.x + 20, self.rect.y + 27), (self.rect.x + 23, self.rect.y + 3), 4)
-            pygame.draw.line(game.screen, pygame.Color('red'), (self.rect.x + 14, self.rect.y + 26), (self.rect.x + 16, self.rect.y + 7), 4)
+            pygame.draw.line(game.screen, pygame.Color(
+                'red'), (self.rect.x + 10, self.rect.y + 24), (self.rect.x + 7, self.rect.y + 5), 4)
+            pygame.draw.line(game.screen, pygame.Color(
+                'red'), (self.rect.x + 20, self.rect.y + 27), (self.rect.x + 23, self.rect.y + 3), 4)
+            pygame.draw.line(game.screen, pygame.Color(
+                'red'), (self.rect.x + 14, self.rect.y + 26), (self.rect.x + 16, self.rect.y + 7), 4)
 
     def getloot(self, loot, emerald, game):
         if not isinstance(loot, list):
@@ -345,30 +406,47 @@ class Player:
                 loot = type(loot)()
             if issubclass(type(loot), dungeon_weapons.BaseMeleeWeapon):
                 if True:
+                    loot.cooldown -= (self.dif - 1)
+                    loot.damage += (self.dif - 1) * 4
+                    loot.reach += (self.dif - 1) * 10
+                    loot.knockback += (self.dif - 1) * 20
+                    loot.num += (self.dif - 1) * 2
+                    loot._speed += (self.dif - 1)
                     self.weapons.append(loot)
                     game.message('You got the ' + loot.name + '!', 200)
-                    if l == None: self._has.append(loot)
+                    if l == None:
+                        self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.BaseRangeWeapon):
                 if True:
+                    loot.arrow['damage'] += (self.dif - 1) * 3
+                    loot.arrow['knockback'] += (self.dif - 1) * 20
+                    loot.cooldown -= (self.dif - 1)
+                    loot._speed += (self.dif - 1)
                     self.ranges.append(loot)
                     game.message('You got the ' + loot.name + '!', 200)
-                    if l == None: self._has.append(loot)
+                    if l == None:
+                        self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.Consumable):
                 self.consumables.append(loot)
                 game.message('You got the ' + loot.name + '!', 200)
-                if l == None: self._has.append(loot)
+                if l == None:
+                    self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.BaseArmor):
+                loot.protect += (self.dif - 1) * 3
+                loot._speed += (self.dif - 1)
                 self.armors.append(loot)
                 game.message('You got the ' + loot.name + '!', 200)
-                if l == None: self._has.append(loot)
+                if l == None:
+                    self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.Artifact):
                 self.artifacts.append(loot)
                 game.message('You got the ' + loot.name + '!', 250)
-                if l == None: self._has.append(loot)
+                if l == None:
+                    self._has.append(loot)
 
             elif isinstance(loot, str):
                 if ' arrows' in loot:
@@ -408,12 +486,14 @@ class Player:
         self.update_power()
 
     def nextarmor(self, game, amount=1):
-        if self.armor != None: self.armor.remove(game)
+        if self.armor != None:
+            self.armor.remove(game)
         self.indexarmor += amount
         if self.indexarmor > len(self.armors) - 1:
             self.indexarmor = 0
         self.armor = self.armors[self.indexarmor]
-        if self.armor != None: self.armor.equip(game)
+        if self.armor != None:
+            self.armor.equip(game)
         self.update_power()
 
     def na(self, i, amount=1):
@@ -422,19 +502,22 @@ class Player:
             if self.ia1 > len(self.artifacts) - 1:
                 self.ia1 = 0
             self.a1 = self.artifacts[self.ia1]
-            if (self.a2 != None and self.a2 == self.a1) or (self.a3 != None and self.a3 == self.a1): self.na(1)
+            if (self.a2 != None and self.a2 == self.a1) or (self.a3 != None and self.a3 == self.a1):
+                self.na(1)
         elif i == 2:
             self.ia2 += amount
             if self.ia2 > len(self.artifacts) - 1:
                 self.ia2 = 0
             self.a2 = self.artifacts[self.ia2]
-            if (self.a1 != None and self.a2 == self.a1) or (self.a3 != None and self.a3 == self.a2): self.na(2)
+            if (self.a1 != None and self.a2 == self.a1) or (self.a3 != None and self.a3 == self.a2):
+                self.na(2)
         elif i == 3:
             self.ia3 += amount
             if self.ia3 > len(self.artifacts) - 1:
                 self.ia3 = 0
             self.a3 = self.artifacts[self.ia3]
-            if (self.a1 != None and self.a3 == self.a1) or (self.a2 != None and self.a3 == self.a2): self.na(3)
+            if (self.a1 != None and self.a3 == self.a1) or (self.a2 != None and self.a3 == self.a2):
+                self.na(3)
         self.update_power()
 
     def enchantw(self, game):
@@ -469,7 +552,8 @@ class Player:
             self.nextartype = 'default'
             self.range.shoot(game, self, a)
             self.rcooldown = self.range.cooldown * random.randint(11, 15)
-            if self.attack_speed != 0: self.rcooldown -= self.attack_speed * 13
+            if self.attack_speed != 0:
+                self.rcooldown -= self.attack_speed * 13
             self.arrows -= 1
 
     def special2(self, game):
@@ -489,12 +573,17 @@ class Player:
         self.kills += 1
 
         self.difficulty += random.choice([1/14, 1/7])
+        if self.dif == 2:
+            self.difficulty += random.choice([0, 1/14])
+        elif self.dif == 3:
+            self.difficulty += random.choice([0, 1/14, 1/7, 1/7])
         if self.difficulty > 50:
             self.difficulty = 50
 
     def die(self, game):
         if dungeon_settings.FRIENDLY_MODE:
-            chest = dungeon_chests.PlayerLootChest(self.rect.x, self.rect.y, self)
+            chest = dungeon_chests.PlayerLootChest(
+                self.rect.x, self.rect.y, self)
             game.chests.append(chest)
             game.killall()
         self.dx = self.dy = 0
@@ -509,7 +598,8 @@ class Player:
         self.indexrange = 0
         self.indexc = 0
         self.emeralds = 0
-        self.effects = {'speed': 0, 'slowness': 0, 'strength': 0, 'weakness': 0, 'resistance': 0, 'poison': 0, 'regeneration': 0, 'fire': 0}
+        self.effects = {'speed': 0, 'slowness': 0, 'strength': 0, 'weakness': 0,
+                        'resistance': 0, 'poison': 0, 'regeneration': 0, 'fire': 0}
         self.range = None
         self.ranges = [None]
         self.consumable = None
@@ -533,20 +623,32 @@ class Player:
         elif hasattr(self.a3, 'using') and self.a3.using and i == 3:
             self.a3.cancel()
         elif i == 1 and self.a1 and self.a1.cooldown <= 0:
-            try: self.a1.use(game)
-            except TypeError: self.a1.use(game,1)
+            try:
+                self.a1.use(game)
+            except TypeError:
+                self.a1.use(game, 1)
         elif i == 2 and self.a2 and self.a2.cooldown <= 0:
-            try: self.a2.use(game)
-            except TypeError: self.a2.use(game,2)
+            try:
+                self.a2.use(game)
+            except TypeError:
+                self.a2.use(game, 2)
         elif i == 3 and self.a3 and self.a3.cooldown <= 0:
-            try: self.a3.use(game)
-            except TypeError: self.a3.use(game,3)
+            try:
+                self.a3.use(game)
+            except TypeError:
+                self.a3.use(game, 3)
 
     def update_power(self):
         self.power = 0
-        if self.weapon: self.power += self.weapon.get_power()
-        if self.range: self.power += self.range.get_power()
-        if self.armor: self.power += self.armor.get_power()
-        if self.a1: self.power += self.a1.get_power()
-        if self.a2: self.power += self.a2.get_power()
-        if self.a3: self.power += self.a3.get_power()
+        if self.weapon:
+            self.power += self.weapon.get_power()
+        if self.range:
+            self.power += self.range.get_power()
+        if self.armor:
+            self.power += self.armor.get_power()
+        if self.a1:
+            self.power += self.a1.get_power()
+        if self.a2:
+            self.power += self.a2.get_power()
+        if self.a3:
+            self.power += self.a3.get_power()

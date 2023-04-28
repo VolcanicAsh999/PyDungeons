@@ -1,9 +1,17 @@
-import threading, socket, signal, sys, time, re, string
+import threading
+import socket
+import signal
+import sys
+import time
+import re
+import string
 import dungeon_enemies
 import dungeon_logger as logger
 
+
 class PDPYServer:
     _last_result = None
+
     def __init__(self, port, game):
         logger.info(f'Binding to port {port}...', 'PDPYServer')
         self.listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -13,15 +21,15 @@ class PDPYServer:
         self.sockets = []
         self.game = game
         self.running = True
-        #signal.signal(signal.SIGINT, self.signal_handle)
-        #signal.signal(signal.SIGTERM, self.signal_handle)
+        # signal.signal(signal.SIGINT, self.signal_handle)
+        # signal.signal(signal.SIGTERM, self.signal_handle)
 
     def run(self):
         while self.running:
             try:
                 (sock, address) = self.listen.accept()
             except socket.error:
-                #print('Limit reached! Server quitting...')
+                # print('Limit reached! Server quitting...')
                 return
             self.sockets.append(sock)
             logger.info(f'Found a client (address={address})', 'PDPYServer')
@@ -48,15 +56,17 @@ class PDPYServer:
             except Exception as e:
                 print('Error - ' + str(e))
         elif re.match('^GETHEALTH', data):
-            #PDPYServer._last_result = self.game.player
+            # PDPYServer._last_result = self.game.player
             listener.socket.sendall(str(self.game.player.hp).encode('utf-8'))
         elif re.match('^SETHEALTH ', data):
             data = data[10:]
             self.game.player.hp = int(float(data))
         elif re.match('^GETPOS', data):
-            listener.socket.sendall(str(self.game.player.rect.x).encode('utf-8'))
+            listener.socket.sendall(
+                str(self.game.player.rect.x).encode('utf-8'))
             time.sleep(0.15)
-            listener.socket.sendall(str(self.game.player.rect.y).encode('utf-8'))
+            listener.socket.sendall(
+                str(self.game.player.rect.y).encode('utf-8'))
         elif re.match('^SETPOS ', data):
             data = data[7:]
             x, y = data.split(' ')
@@ -79,6 +89,7 @@ class PDPYServer:
         self.running = False
         self.listen.close()
         logger.info(f'Closing server', 'PDPYServer')
+
 
 class ClientListener(threading.Thread):
     def __init__(self, server, sock, address):
@@ -106,6 +117,7 @@ class ClientListener(threading.Thread):
     def handle_msg(self, data):
         data = data.decode('utf-8')
         self.server.recieve(data, self)
+
 
 if __name__ == '__main__':
     server = PDPYServer(28135, None)

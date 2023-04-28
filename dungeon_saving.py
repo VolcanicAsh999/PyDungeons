@@ -8,39 +8,56 @@ import dungeon_helpful as dh
 import json
 import os
 
-data = {'spawners': {de.ZombieSpawner: 1, de.SkeletonSpawner: 2, de.SpiderSpawner: 3, de.CreeperSpawner: 4}, 'other': {dm.EmeraldPot: 1, dm.EvokerSpikes: 2, dm.TNT: 3, dm.ThrownPotion: 4, dm.PoisonCloud: 5, dm.GeomancerColumn: 6, dm.WraithFlames: 7, dm.IceBlock: 8}, 'helpfuls': {dh.Golem: 1, dh.Wolf: 2, dh.Bat: 3}, 'chests': {dc.WeaponChest: 1, dc.ConsumableChest: 2, dc.EmeraldChest: 3, dc.ObsidianChest: 4, dc.SupplyChest: 5, dc.SilverChest: 6, dc.ArmorChest: 7, dc.PlayerLootChest: 8, dc.InventoryChest: 9}, 'arrows': {da.Arrow: 1, da.SlowArrow: 2, da.PoisonArrow: 3, da.FlamingArrow: 4, da.ExplodingArrow: 5, da.ImplodingArrow: 6, da.SpeedWhenHurtArrow: 7, dm.ThrowingPotion: 8, da.Bolt: 9, dm.ConjuredProjectile: 10}, 'enemies': {de.Zombie: 1, de.Husk: 2, de.Drowned: 3, de.PlantZombie: 4, de.SpeedyZombie: 5, de.Necromancer: 6, de.Slime: 7, de.Skeleton: 8, de.Stray: 9, de.MossSkeleton: 10, de.FlamingSkeleton: 11, de.Pillager: 12, de.Vindicator: 13, de.Evoker: 14, de.Vex: 15, de.Creeper: 16, de.Spider: 17, de.Enchanter: 18, de.Geomancer: 19, de.RoyalGuard: 20, de.ArmoredZombie: 21, de.BabyZombie: 22, de.ChickenJockey: 23, de.ChickenJockeyTower: 24, de.CaveSpider: 25, de.Witch: 26, de.SkeletonHorse: 27, de.SkeletonHorseman: 28, de.Enderman: 29, de.Wraith: 30, de.SkeletonVanguard: 31, de.NamelessOne: 32, de.RedstoneGolem: 33, de.RedstoneMonstrosity: 34, de.RedstoneCube: 35, de.ConjuredSlime: 36, de.TheCauldron: 37, de.Iceologer: 38}}
+data = {'spawners': {de.ZombieSpawner: 1, de.SkeletonSpawner: 2, de.SpiderSpawner: 3, de.CreeperSpawner: 4}, 'other': {dm.EmeraldPot: 1, dm.EvokerSpikes: 2, dm.TNT: 3, dm.ThrownPotion: 4, dm.PoisonCloud: 5, dm.GeomancerColumn: 6, dm.WraithFlames: 7, dm.IceBlock: 8}, 'helpfuls': {dh.Golem: 1, dh.Wolf: 2, dh.Bat: 3}, 'chests': {dc.WeaponChest: 1, dc.ConsumableChest: 2, dc.EmeraldChest: 3, dc.ObsidianChest: 4, dc.SupplyChest: 5, dc.SilverChest: 6, dc.ArmorChest: 7, dc.PlayerLootChest: 8, dc.InventoryChest: 9}, 'arrows': {da.Arrow: 1, da.SlowArrow: 2, da.PoisonArrow: 3, da.FlamingArrow: 4, da.ExplodingArrow: 5, da.ImplodingArrow: 6, da.SpeedWhenHurtArrow: 7, dm.ThrowingPotion: 8, da.Bolt: 9, dm.ConjuredProjectile: 10}, 'enemies': {de.Zombie: 1,
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 de.Husk: 2, de.Drowned: 3, de.PlantZombie: 4, de.SpeedyZombie: 5, de.Necromancer: 6, de.Slime: 7, de.Skeleton: 8, de.Stray: 9, de.MossSkeleton: 10, de.FlamingSkeleton: 11, de.Pillager: 12, de.Vindicator: 13, de.Evoker: 14, de.Vex: 15, de.Creeper: 16, de.Spider: 17, de.Enchanter: 18, de.Geomancer: 19, de.RoyalGuard: 20, de.ArmoredZombie: 21, de.BabyZombie: 22, de.ChickenJockey: 23, de.ChickenJockeyTower: 24, de.CaveSpider: 25, de.Witch: 26, de.SkeletonHorse: 27, de.SkeletonHorseman: 28, de.Enderman: 29, de.Wraith: 30, de.SkeletonVanguard: 31, de.NamelessOne: 32, de.RedstoneGolem: 33, de.RedstoneMonstrosity: 34, de.RedstoneCube: 35, de.ConjuredSlime: 36, de.TheCauldron: 37, de.Iceologer: 38, de.Piglin: 39, de.PiglinSword: 40, de.PiglinBrute: 41}}
 data2 = {c: {a: b for b, a in data[c].items()} for c in data.keys()}
 
 path = os.path.join(os.environ.get('APPDATA'), '.pydungeons', 'saves')
 if not os.path.exists(path):
     os.makedirs(path)
 
+
 def reload():
     global data, data2
     data2 = {c: {a: b for b, a in data[c].items()} for c in data.keys()}
 
+
 def nextChest():
     return len(data['chests'].keys()) + 1
+
+
 def nextArrow():
     return len(data['arrows'].keys()) + 1
+
+
 def nextEnemy():
     return len(data['enemies'].keys()) + 1
+
+
 def nextHelpful():
     return len(data['helpfuls'].keys()) + 1
+
+
 def nextOther():
     return len(data['other'].keys()) + 1
+
+
 def nextSpawner():
     return len(data['spawners'].keys()) + 1
 
-def remdups(l): #helper function
+
+def remdups(l):  # helper function
     l2 = []
     for i in l:
-        if i in l2: continue
+        if i in l2:
+            continue
         l2.append(i)
     return l2
 
+
 def listworlds():
     return [file for file in os.listdir(path) if file.endswith('.json')]
+
 
 def listworldnames():
     ret = []
@@ -49,6 +66,7 @@ def listworldnames():
             data = json.loads(f.read())
         ret.append(data['Name'])
     return ret
+
 
 def worlddata(name):
     worlds = listworlds()
@@ -61,10 +79,12 @@ def worlddata(name):
         world_.close()
     return ret
 
+
 def worldname(filename):
     worlds = listworlds()
     ret = None
-    if not filename.endswith('.json'): filename += '.json'
+    if not filename.endswith('.json'):
+        filename += '.json'
     for world in worlds:
         if world.lower() == filename.lower():
             world_ = open(os.path.join(path, world))
@@ -73,12 +93,14 @@ def worldname(filename):
             world_.close()
     return ret
 
+
 def changename(filename, newname):
     with open(os.path.join(path, filename)) as file:
         data = json.loads(file.read())
     data['Name'] = newname
     with open(os.path.join(path, filename), mode='w') as file:
         json.dump(data, filename)
+
 
 def save_world(game, name, filename):
     p = game.player
@@ -101,7 +123,8 @@ def save_world(game, name, filename):
                            }
     for arrow in game.arrows:
         if type(arrow) == dm.ThrowingPotion:
-            load_text['Arrows'] += [{'x': arrow.x, 'y': arrow.y, 'type': 8, 'start': arrow.start, 'finish': arrow.target, 'effect': arrow.effect}]
+            load_text['Arrows'] += [{'x': arrow.x, 'y': arrow.y, 'type': 8,
+                                     'start': arrow.start, 'finish': arrow.target, 'effect': arrow.effect}]
         elif type(arrow) == dm.ConjuredProjectile:
             load_text['Arrows'] += [{'x': arrow.x, 'y': arrow.y, 'type': 10}]
         else:
@@ -110,26 +133,31 @@ def save_world(game, name, filename):
     for wall in game.walls:
         load_text['Walls'] += [{'x': wall.rect.x, 'y': wall.rect.y}]
     for enemy in game.enemies:
-        d = {'x': enemy.rect.x, 'y': enemy.rect.y, 'hp': enemy.hp, 'effects': enemy.effects, 'type': data['enemies'][type(enemy)]}
+        d = {'x': enemy.rect.x, 'y': enemy.rect.y, 'hp': enemy.hp,
+             'effects': enemy.effects, 'type': data['enemies'][type(enemy)]}
         if type(enemy) == de.Slime:
             d['size'] = enemy.size
         load_text['Enemies'] += [d]
     for chest in game.chests:
-        load_text['Chests'] += [{'x': chest.rect.x,  'y': chest.rect.y, 'type': data['chests'][type(chest)]}]
+        load_text['Chests'] += [{'x': chest.rect.x,
+                                 'y': chest.rect.y, 'type': data['chests'][type(chest)]}]
     for helpful in game.helpfuls:
-        if type(helpful) == dh.Bat: continue
-        load_text['Helpfuls'] += [{'x': helpful.rect.x, 'y': helpful.rect.y, 'type': data['helpfuls'][type(helpful)], 'hp': helpful.hp, 'effects': helpful.effects}]
+        if type(helpful) == dh.Bat:
+            continue
+        load_text['Helpfuls'] += [{'x': helpful.rect.x, 'y': helpful.rect.y,
+                                   'type': data['helpfuls'][type(helpful)], 'hp': helpful.hp, 'effects': helpful.effects}]
     for other in game.other:
         load_text['Others'] += [other.get_save_data()]
         load_text['Others'][-1]['type'] = data['other'][type(other)]
     for spawner in game.spawners:
-        load_text['Spawners'] += [{'x': spawner.rect.x, 'y': spawner.rect.y, 'spawndelay': spawner.spawndelay, 'type': data['spawners'][type(spawner)]}]
+        load_text['Spawners'] += [{'x': spawner.rect.x, 'y': spawner.rect.y,
+                                   'spawndelay': spawner.spawndelay, 'type': data['spawners'][type(spawner)]}]
     for weapon in p.weapons:
         if weapon == None:
             continue
         load_text['Player']['weapons'] += [{'Name': weapon.name, 'bonus': weapon._bonus, 'cooldown': weapon.cooldown, 'num': weapon.num,
                                            'damage': weapon.damage, 'reach': weapon.reach, 'knockback': weapon.knockback, 'spent': weapon._spent,
-                                           'speed': weapon._speed, 'enchant': weapon._enchant}]
+                                            'speed': weapon._speed, 'enchant': weapon._enchant}]
     for rang in p.ranges:
         if rang == None:
             continue
@@ -150,24 +178,29 @@ def save_world(game, name, filename):
     for art in p.artifacts:
         if art == None:
             continue
-        load_text['Player']['artifacts'] += [{'Name': art.name, 'cooldown': art.cooldown}]
+        load_text['Player']['artifacts'] += [
+            {'Name': art.name, 'cooldown': art.cooldown}]
     for obj in p._has:
         load_text['Player']['has'] += [{'Name': obj.name}]
     load_text['Player']['has'] = remdups(load_text['Player']['has'])
 
-    if not filename.endswith('.json'): filename += '.json'
-                                 
+    if not filename.endswith('.json'):
+        filename += '.json'
+
     with open(os.path.join(path, filename), mode='w') as file:
         json.dump(load_text, file)
 
+
 def load_world(game, filename):
-    if not filename.endswith('.json'): filename += '.json'
+    if not filename.endswith('.json'):
+        filename += '.json'
     if not os.path.exists(os.path.join(path, filename)):
         return
     p = game.player
     with open(os.path.join(path, filename)) as file:
         load_text = json.loads(file.read())
-    game.version = load_text['Version'] if 'Version' in load_text.keys() else '1.0.0'
+    game.version = load_text['Version'] if 'Version' in load_text.keys(
+    ) else '1.0.0'
     pd = load_text['Player']
     p.rect.x, p.rect.y = pd['x'], pd['y']
     p.arrows, p.emeralds, p.kills = pd['arrows'], pd['emeralds'], pd['kills']
@@ -221,7 +254,8 @@ def load_world(game, filename):
                 item = type(thing)()
                 break
         item._bonus = rang['bonus']
-        item.cooldown, item.arrow['damage'], item.arrow['knockback'], item.arrow['type'], item.arrow['name'] = rang['cooldown'], rang['damage'], rang['knockback'], data2['arrows'][rang['type']], rang['name']
+        item.cooldown, item.arrow['damage'], item.arrow['knockback'], item.arrow['type'], item.arrow[
+            'name'] = rang['cooldown'], rang['damage'], rang['knockback'], data2['arrows'][rang['type']], rang['name']
         item._spent, item._enchant = rang['spent'], rang['enchant']
         item._speed = rang['speed']
         item.numshoot = rang['num']
@@ -237,7 +271,8 @@ def load_world(game, filename):
                 item = type(thing)()
                 break
         item._bonus = weapon['bonus']
-        item.cooldown, item.num, item.damage, item.reach, item.knockback = weapon['cooldown'], weapon['num'], weapon['damage'], weapon['reach'], weapon['knockback']
+        item.cooldown, item.num, item.damage, item.reach, item.knockback = weapon[
+            'cooldown'], weapon['num'], weapon['damage'], weapon['reach'], weapon['knockback']
         item._spent, item._enchant = weapon['spent'], weapon['enchant']
         item._speed = weapon['speed']
         item.update_descript()
@@ -247,15 +282,18 @@ def load_world(game, filename):
     p.difficulty = pd['difficulty']
     for arrow in load_text['Arrows']:
         if arrow['type'] == 8:
-            game.arrows.append(data2['arrows'][8](arrow['start'], arrow['finish'], None, arrow['effect']))
+            game.arrows.append(data2['arrows'][8](
+                arrow['start'], arrow['finish'], None, arrow['effect']))
             game.arrows[-1].x = arrow['x']
             game.arrows[-1].y = arrow['y']
         elif arrow['type'] == 9:
-            game.arrows.append(data2['arrows'][9](arrow['start'], arrow['finish'], None))
+            game.arrows.append(data2['arrows'][9](
+                arrow['start'], arrow['finish'], None))
         elif arrow['type'] == 10:
             game.arrows.append(data2['arrows'][10](arrow['x'], arrow['y']))
         else:
-            game.arrows.append(data2['arrows'][arrow['type']](arrow['start'], arrow['finish'], arrow['damage'], arrow['knockback'], de.HitBox(arrow['start'][0], arrow['start'][1]), chain=arrow['chain']))
+            game.arrows.append(data2['arrows'][arrow['type']](arrow['start'], arrow['finish'], arrow['damage'],
+                               arrow['knockback'], de.HitBox(arrow['start'][0], arrow['start'][1]), chain=arrow['chain']))
             game.arrows[-1].x = arrow['x']
             game.arrows[-1].y = arrow['y']
     for enemy in load_text['Enemies']:
@@ -280,7 +318,8 @@ def load_world(game, filename):
         spawne = data2['spawners'][spawner['type']](spawner['x'], spawner['y'])
         spawne.spawndelay = spawner['spawndelay']
         game.spawners.append(spawne)
-    walls = dwa.genfromlist(load_text['Walls'] if 'Walls' in load_text.keys() else [])
+    walls = dwa.genfromlist(
+        load_text['Walls'] if 'Walls' in load_text.keys() else [])
     game.walls = walls
     p.nextweapon(amount=0)
     p.nextrange(amount=0)

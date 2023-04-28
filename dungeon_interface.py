@@ -5,14 +5,19 @@ import threading
 
 __all__ = ['Interface']
 
+
 class Interface:
     def __init__(self):
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             self._sock.connect(('localhost', 28135))
         except socket.error as e:
-            if e.errno == 10061: raise ConnectionRefusedError('Could not find any instance of PyDungeons running!')
-            else: raise Exception('Unrecognized Server Unavailable Exception - ' + str(e))
+            if e.errno == 10061:
+                raise ConnectionRefusedError(
+                    'Could not find any instance of PyDungeons running!')
+            else:
+                raise Exception(
+                    'Unrecognized Server Unavailable Exception - ' + str(e))
         self._res = None
         self._running = True
         threading.Thread(target=self._loop, daemon=True).start()

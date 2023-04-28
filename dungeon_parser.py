@@ -1,7 +1,13 @@
 import re
 import dungeon_logger as logger
 import os
-import dungeon_settings, dungeon_weapons, dungeon_enemies, dungeon_chests, dungeon_helpful, dungeon_arrows
+import dungeon_settings
+import dungeon_weapons
+import dungeon_enemies
+import dungeon_chests
+import dungeon_helpful
+import dungeon_arrows
+
 
 def message(game):
     def message_(what):
@@ -9,11 +15,14 @@ def message(game):
         game.message(what)
     return message_
 
+
 def get_globals(game, args):
     return {'message': message(game), 'args': args, 'game': game, 'self': game.player, 'player': game.player, 'settings': dungeon_settings, 'weapons': dungeon_weapons, 'enemies': dungeon_enemies, 'chests': dungeon_chests, 'helpfuls': dungeon_helpful, 'arrows': dungeon_arrows}
 
+
 def run_script(game, name, args):
-    if '.' not in name: name += '.py'
+    if '.' not in name:
+        name += '.py'
     try:
         f = open(name)
     except OSError:
@@ -28,11 +37,14 @@ def run_script(game, name, args):
         exec(f.read(-1), get_globals(game, args))
         f.close()
     except Exception as e:
-        #logger.error('Exception running command - ' + str(e), 'CommandParser')
-        try: f.close()
-        except: pass
+        # logger.error('Exception running command - ' + str(e), 'CommandParser')
+        try:
+            f.close()
+        except:
+            pass
         return str(e)
     return 0
+
 
 def parse(game, text):
     if text.startswith('/'):
@@ -56,6 +68,7 @@ def parse(game, text):
                 for i in p[1:]:
                     game.message(f'              {i}')
             logger.chat(p[0], game.pname)
+
 
 def parsecmd(game, cmd, stop=False):
     if re.match('^code ', cmd):

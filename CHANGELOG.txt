@@ -114,3 +114,11 @@
 1.5.0
     -Completely changed artifacts, taking away the souls requirements and greatly decreasing cooldown
     -Made artifacts much more useful
+
+1.5.1
+    -Added Piglins and Piglin Brutes
+    -Fixed bugs
+
+1.5.2
+    -Fixed bugs
+    -Removed usage of Tkinter from world creation screen

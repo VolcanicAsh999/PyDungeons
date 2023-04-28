@@ -1,3 +1,4 @@
+import dungeon_helpful  # Must be at end to prevent circular import
 import pygame
 import random
 import time
@@ -14,6 +15,7 @@ _types = {'strength': pygame.Color('purple'),
           'poison': pygame.Color('green'),
           'resistance': pygame.Color('dark red'),
           'regeneration': pygame.Color('pink')}
+
 
 class _particle:  # One particle
     def __init__(self, _type):
@@ -87,7 +89,7 @@ class EmeraldPot:
         self._die = False
         if '_die' in data:
             self._die = data['_die']
-        
+
     def render(self, game):
         if self._die:
             game.other.remove(self)
@@ -140,7 +142,8 @@ class ThrowingPotion(dungeon_arrows.Arrow):
             self.effect))
 
     def draw(self, game):
-        pygame.draw.circle(game.screen, pygame.Color('white'), (self.x, self.y), 4)
+        pygame.draw.circle(game.screen, pygame.Color(
+            'white'), (self.x, self.y), 4)
         pygame.draw.circle(game.screen, self.col, (self.x, self.y), 3)
 
 
@@ -154,7 +157,7 @@ class ConjuredProjectile(dungeon_arrows.Arrow):
         # self.move_xy(self.dx, self.dy)
         target = dungeon_util.get_nearest_target(game, self, True)
 
-        if target.rect.x < self.x: #home in!
+        if target.rect.x < self.x:  # home in!
             self.move_xy(-3, 0)
         elif target.rect.x > self.x:
             self.move_xy(3, 0)
@@ -164,9 +167,9 @@ class ConjuredProjectile(dungeon_arrows.Arrow):
             self.move_xy(0, 3)
 
         self.draw(game)
-        
+
         for entity in game.helpfuls + game.enemies + \
-            game.spawners + [game.player]:
+                game.spawners + [game.player]:
             if target.rect.y - 20 < self.y < target.rect.y + 20 and \
                target.rect.x - 20 < self.x < target.rect.x + 20:
                 self.hit(entity, game)
@@ -175,7 +178,7 @@ class ConjuredProjectile(dungeon_arrows.Arrow):
         if (self.rect.x < -100 or
             self.rect.x > game.screen.get_width() + 100 or
             self.rect.y < -100 or
-            self.rect.y > game.screen.get_height() + 100):
+                self.rect.y > game.screen.get_height() + 100):
             self.destroy(game)
 
     def draw(self, game):
@@ -246,9 +249,12 @@ class TNT:
         self.fuse = 5
         self.red = True
         self.decreasefuselast = time.time()
-        if 'fuse' in data: self.fuse = data['fuse']
-        if 'red' in data: self.red = data['red']
-        if 'howlong' in data: self.decreasefuselast - data['howlong']
+        if 'fuse' in data:
+            self.fuse = data['fuse']
+        if 'red' in data:
+            self.red = data['red']
+        if 'howlong' in data:
+            self.decreasefuselast - data['howlong']
 
     def render(self, game):
         self.draw(game)
@@ -281,7 +287,7 @@ class TNT:
         time.sleep(2)
         self.rect = pygame.Rect(self.x, self.y, 1, 1)
         for entity in game.enemies + game.helpfuls + \
-            game.spawners + [game.player]:
+                game.spawners + [game.player]:
             if collision_rect.colliderect(entity.rect):
                 if type(entity) in [dungeon_helpful.Golem, dungeon_helpful.Wolf,
                                     dungeon_helpful.Bat]:
@@ -319,9 +325,7 @@ class IceBlock:
             self.falltick += 1
             if self.falltick > 80:
                 game.other.remove(self)
-                dx = abs(self.x - game.player.rect.x)
-                dy = abs(self.y - game.player.rect.y)
-                d = math.sqrt(dx ** 2 + dy ** 2)
+                d = math.dist((self.rect.x, self.rect.y), (game.player.rect.x, game.player.rect.y))
                 if d < 10:
                     game.player.take_damage(25)
                 elif d < 20:
@@ -333,10 +337,11 @@ class IceBlock:
         self.draw(game)
 
     def draw(self, game):
-        pygame.draw.rect(game.screen, pygame.Color('light blue'), pygame.Rect(self.x, self.y + self.falltick, 40, 20))
+        pygame.draw.rect(game.screen, pygame.Color('light blue'),
+                         pygame.Rect(self.x, self.y + self.falltick, 40, 20))
 
     def move(self, x=0, y=0):
-        pass
+        return self.rect
 
     def get_save_data(self):
         return {'x': self.x, 'y': self.y, 'howlong': time.time() - self.start,
@@ -392,32 +397,33 @@ class WraithFlames:  # Fire made by a wraith
     def __init__(self, x, y, data={}):
         self.x = x
         self.y = y
-        self.rect = type('rect', (), {'x': self.x, 'y': self.y, 'move': self.move})
+        #self.rect = type(
+        #    'rect', (), {'x': self.x, 'y': self.y, 'move': self.move})
         self.getridof = time.time()
         self.col = pygame.Color('blue')
         self.delayd = 0
-        self.delayD = 20
+        self.delayD = 4
         if 'howlong' in data:
             self.getridof -= data['howlong']
             self.delayd = data['delayd']
 
     def render(self, game):
         self.draw(game)
-        if time.time() - self.getridof > 8:
+        if time.time() - self.getridof > 20:
             if self in game.other:
-                game.other.remove(self)  # Die after 8 seconds
+                game.other.remove(self)  # Die after 20 seconds
         self.delayd += 1
         if self.delayd >= self.delayD:
             self.delayd = 0
             for entity in game.enemies:
-                if entity.rect.colliderect(pygame.Rect(self.x,self.y, 20, 20)):
+                if entity.rect.colliderect(pygame.Rect(self.x, self.y, 20, 20)):
                     if entity.maintype == 'wraith':  # Wraiths avoid their fire
                         entity.teleport_away()
                     else:
-                        entity.hp -= 1 #hurt them, light them on fire
+                        entity.hp -= 1  # hurt them, light them on fire
                         if entity.effects['fire'] < 10:
                             entity.effects['fire'] = 10
-            for entity in game.helpfuls: #same thing for helpfuls and the player
+            for entity in game.helpfuls:  # same thing for helpfuls and the player
                 if entity.rect.colliderect(pygame.Rect(self.x, self.y, 20, 20)):
                     entity.hp -= 1
                     if entity.effects['fire'] < 10:
@@ -427,7 +433,7 @@ class WraithFlames:  # Fire made by a wraith
                 if game.player.effects['fire'] < 10:
                     game.player.effects['fire'] = 10
 
-    def draw(self, game): #draw flames
+    def draw(self, game):  # draw flames
         pygame.draw.line(game.screen, self.col,
                          (self.x, self.y),
                          (self.x + 5, self.y + 19), 3)
@@ -465,8 +471,10 @@ class GeomancerColumn:  # Geomancer column
         self.bottom = pygame.Rect(self.x + 90, self.y, 100, 10)
         self.xrect = True
         self.getridof = time.time()
-        if 'howlong' in data: self.getridof -= data['howlong']
-        if 'doesexplode' in data: self.doesexplode = data['doesexplode']
+        if 'howlong' in data:
+            self.getridof -= data['howlong']
+        if 'doesexplode' in data:
+            self.doesexplode = data['doesexplode']
         if 'x' in data:
             self.x = x
             self.rect.x = x
@@ -535,7 +543,7 @@ class GeomancerColumn:  # Geomancer column
 
     def draw(self, game):
         pygame.draw.rect(game.screen,
-                         pygame.Color('dark grey' if not self.doesexplode \
+                         pygame.Color('dark grey' if not self.doesexplode
                                       else 'light grey'), self.rect)
 
     def explode(*args):  # Blow up
@@ -550,7 +558,7 @@ class GeomancerColumn:  # Geomancer column
         time.sleep(1)
         self.rect = pygame.Rect(self.x, self.y, 1, 1)
         for entity in game.enemies + game.helpfuls + \
-                    game.spawners + [game.player]:
+                game.spawners + [game.player]:
             if collision_rect.colliderect(entity.rect):
                 if type(entity) in [dungeon_helpful.Golem,
                                     dungeon_helpful.Wolf,
@@ -571,6 +579,3 @@ class GeomancerColumn:  # Geomancer column
         self.right.y += y
         self.left.x += x
         self.left.y += y
-
-
-import dungeon_helpful  # Must be at end to prevent circular import
