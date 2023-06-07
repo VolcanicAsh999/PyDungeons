@@ -1,6 +1,9 @@
 # PyDungeons
 Minecraft Dungeons clone in Python.
 
+---WARNING---
+Game is currently partyway through an update, will be glitchy for a while
+
 This is my attempt at making a Minecraft Dungeons clone. I added as many
 of the same weapons and items as I could that are in Minecraft Dungeons as
 well, and added many of the same mobs.
