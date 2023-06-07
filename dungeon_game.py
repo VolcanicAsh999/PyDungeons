@@ -14,7 +14,7 @@ from dungeon_settings import FONT_PATH, BASEPATH  # need the fonts
 import dungeon_logger as logger
 import pygame
 
-__version__ = '1.5.2'
+__version__ = '1.5.3'
 
 if True:  # not dungeon_settings.DO_FULL_SCREEN:
     # resizable window, but not full screen
@@ -36,7 +36,7 @@ screen.blit(pygame.font.Font(FONT_PATH, 100).render('Loading...', 1, pygame.Colo
     'black')), (100, 100))  # loading screen while imports are loading
 pygame.display.update()
 
-import itertools  # what the heck is itertools used for?
+import itertools
 import traceback
 import datetime
 from pygame._sdl2 import messagebox
@@ -62,8 +62,7 @@ import dungeon_player
 spx = 100
 spy = 100
 
-handler = dungeons_gui.ScreenHandler(screen)  # make a handler (old mechanism)
-
+handler = dungeons_gui.ScreenHandler(screen)  # make a handler so we don't have to pass it as an arg
 dungeon_settings.start()  # start the music
 dungeon_settings.initcursor()  # initialize the cursor
 
@@ -187,7 +186,7 @@ class Game:
         # self.screen.fill(self.screen_color)
 
         self.enemy_delay += 1  # spawn enemies
-        if self.enemy_delay > 500 + random.randint(-20, 20) - (self.player.difficulty * 7) - ((1-self.dif) * 5):
+        if self.enemy_delay > 1000 + random.randint(-20, 20) - (self.player.difficulty * 7) - ((1-self.dif) * 5):
             self.add_enemy()
             self.enemy_delay = 0
 
@@ -290,13 +289,6 @@ class Game:
                     self.moving['down'] = 0
                 if event.key == pygame.K_w:
                     self.moving['up'] = 0
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                # leftclick=melee
-                if pygame.mouse.get_pressed()[0] == 1 and self.player.cooldown == 0:
-                    self.player.attack(self)
-                # rightclick=ranged (dunno why i called it special)
-                elif pygame.mouse.get_pressed()[2] == 1 and self.player.rcooldown == 0:
-                    self.player.special(self)
 
         if self.moving['left'] == 1:  # move player, scroll objects
             if self.player.rect.x > 100:
@@ -318,6 +310,13 @@ class Game:
                 self.player.move(self, y=-3)
             else:
                 self.scroll(y=3 + self.player.increase())
+
+        # leftclick=melee
+        if pygame.mouse.get_pressed()[0] == 1 and self.player.cooldown <= 0:
+            self.player.attack(self)
+        # rightclick=ranged (dunno why i called it special)
+        elif pygame.mouse.get_pressed()[2] == 1 and self.player.rcooldown <= 0:
+            self.player.special(self)
 
         self.screen.fill(self.screen_color)  # clear the screen
 
@@ -346,7 +345,7 @@ class Game:
                 0, self.screen.get_width()), random.randint(0, self.screen.get_height())))
         else:
             num = random.randrange(0, 100)
-            num += (1 - self.dif) * 20
+            num += (1 - self.dif) * 5  # harder enemies in harder difficulties
             if num in range(60):  # easy enemy (60% chance)
                 self.enemies.append(random.choice(dungeon_enemies.easy)(random.randint(
                     0, self.screen.get_width()), random.randint(0, self.screen.get_height())))
@@ -358,7 +357,7 @@ class Game:
                     0, self.screen.get_width()), random.randint(0, self.screen.get_height())))
             else:
                 if random.randint(0, 10) == 0:  # boss enemy (0.1% chance)
-                    self.enemies.append(random.choice(dungeon_enemies.actual_boss)(random.randint(
+                    self.enemies.append(random.choice(dungeon_enemies.boss)(random.randint(
                         0, self.screen.get_width()), random.randint(0, self.screen.get_height())))
                 else:  # very hard enemy (1.9% chance)
                     self.enemies.append(random.choice(dungeon_enemies.very_hard)(random.randint(
@@ -371,12 +370,12 @@ class Game:
     def objects_render(self):
 
         wcooldown_rect = pygame.Rect(
-            5, self.screen.get_height() - 35, int(self.player.cooldown), 30)
+            5, self.screen.get_height() - 35, int(self.player.cooldown * 50), 30)
         pygame.draw.rect(self.screen, pygame.Color('red'),
                          wcooldown_rect)  # cooldown of weapon
 
         rcooldown_rect = pygame.Rect(
-            5, self.screen.get_height() - 70, int(self.player.rcooldown), 30)
+            5, self.screen.get_height() - 70, int(self.player.rcooldown * 50), 30)
         pygame.draw.rect(self.screen, pygame.Color('red'),
                          rcooldown_rect)  # cooldown of bow
 
@@ -532,7 +531,7 @@ class Game:
         self.button_resume = self.button_quit = None
         if dungeon_settings.RUN_PDPY_SERVER:
             self.pdpyserv.stop()  # stop the PDPY server
-        raise UnicodeError  # simple way of saying "i'm done!"
+        raise UnicodeError  # triggers an except to return to main menu
 
     def scroll(self, x=0, y=0):
         all = self.get_all()
@@ -933,7 +932,6 @@ def main(options=None):
             button_options.update(events)
             button_controls.update(events)
             button_difficulty.update(events)
-            # ah yes, i need an itertools.cycle so it can go through it over and over
             screen.blit(next(texts), (x, y))
             if button_difficulty.text != dungeon_settings.DIFFICULTY:
                 button_difficulty.set_text(dungeon_settings.DIFFICULTY)
@@ -959,7 +957,7 @@ def main(options=None):
                         (screen.get_width() // 2) - 150, 10, 300, 80, 60)
                     button_difficulty.update_(
                         (screen.get_width() - 350), 10, 300, 80, 60)
-                    # logger.info('Window has been resized to width=' + str(event.width) + ', height=' + str(event.height)) #um, apparently this dont work which is weird (not important though)
+                    # logger.info('Window has been resized to width=' + str(event.width) + ', height=' + str(event.height))  # apparently this dont work which is weird (not important though)
             pygame.display.update()
     except Exception as e:
         pygame.quit()

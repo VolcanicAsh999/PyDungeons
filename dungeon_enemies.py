@@ -177,6 +177,9 @@ class BaseEnemy:
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
     def give_unmoving(self, seconds, mode='ice'):
         temp = self.speed
@@ -296,7 +299,7 @@ class BaseSkeleton(BaseEnemy):
         self.damage = 0
         self.arrow = {'type': dungeon_arrows.Arrow,
                       'damage': 2, 'knockback': 20}
-        self.delay_damage = 70
+        self.delay_damage = 70 * 5
         self.xp_drop = 0.15
         self.speed = 2
         
@@ -400,6 +403,9 @@ class Wraith(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class Enderman(BaseEnemy):
@@ -479,6 +485,9 @@ class Enderman(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class RedstoneGolem(BaseEnemy):
@@ -556,6 +565,9 @@ class RedstoneGolem(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
     def render(self, game):
         super().render(game)
@@ -712,6 +724,9 @@ class RedstoneMonstrosity(RedstoneGolem):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class Slime(BaseEnemy):
@@ -845,6 +860,9 @@ class Slime(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class RedstoneCube(Slime):
@@ -892,6 +910,9 @@ class RedstoneCube(Slime):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class ConjuredSlime(RedstoneCube):
@@ -922,21 +943,31 @@ class Piglin(BaseSkeleton):
         self.color_body = pygame.Color('brown')
         self.color_head = pygame.Color('pink')
         self.color_arm = pygame.Color('pink')
-        self.weapon = dungeon_weapons.Crossbow()
-        self.delay_damage = 100
+        self.weapon = dungeon_weapons.Crossbow(1)
+        self.delay_damage = 100 * 4
         self.hp = 24
         self.name = 'Piglin'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
         self.xp_drop = 0.1
         self.hpmax = self.hp
-        self.speed = 3
+        self.speed = 3 * 5
         self.arrow = {'type': dungeon_arrows.Arrow,
                       'damage': 4, 'knockback': 30}
 
     def draw(self, game):
         super().draw(game)
         self.weapon.render(self.rect.x + 5, self.rect.y + 20, game)
+
+
+class ArmoredPiglin(Piglin):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.color_body = pygame.Color('light grey')
+        self.name = 'Armored Piglin'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.armor = 10
 
 
 class PiglinSword(BaseEnemy):
@@ -947,7 +978,7 @@ class PiglinSword(BaseEnemy):
         self.color_body = pygame.Color('brown')
         self.color_head = pygame.Color('pink')
         self.color_arm = pygame.Color('pink')
-        self.weapon = dungeon_weapons.GoldenSword()
+        self.weapon = dungeon_weapons.GoldenSword(1)
         self.damage = 5
         self.xp_drop = 0.1
         self.hp = 24
@@ -963,10 +994,20 @@ class PiglinSword(BaseEnemy):
         self.weapon.render(self.rect.x + 25, self.rect.y + 20, game)
 
 
+class ArmoredPiglinSword(PiglinSword):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.color_body = pygame.Color('light grey')
+        self.name = 'Armored Piglin'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.armor = 10
+
+
 class PiglinBrute(PiglinSword):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.weapon = dungeon_weapons.GoldenAxe()
+        self.weapon = dungeon_weapons.GoldenAxe(1)
         self.damage = 11
         self.xp_drop = 0.5
         self.hp = 50
@@ -976,6 +1017,16 @@ class PiglinBrute(PiglinSword):
         self.name = 'Piglin Brute'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
+
+
+class ArmoredPiglinBrute(PiglinBrute):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.color_body = pygame.Color('light grey')
+        self.name = 'Armored Piglin Brute'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.armor = 10
 
 
 class BaseIllager(BaseEnemy):    
@@ -988,9 +1039,9 @@ class BaseIllager(BaseEnemy):
         self.color_head = pygame.Color('grey')
         self.color_arm = pygame.Color('grey')
         self.has_weapon = True
-        self.weapon = dungeon_weapons.Crossbow()
+        self.weapon = dungeon_weapons.Crossbow(1)
         self.damage = 2
-        self.delay_damage = 10 if self.melee else 80
+        self.delay_damage = 10 if self.melee else (80 * 5)
         self.hp = 24
         self.name = 'Pillager'
         self.text = pygame.font.SysFont(self.name, 20).render(
@@ -1003,7 +1054,7 @@ class BaseIllager(BaseEnemy):
         self.fix()
 
     def fix(self):
-        self.delay_damage = 10 if self.melee else 80
+        self.delay_damage = 10 if self.melee else (80 * 5)
         if self.melee:
             self.damage = self.weapon.damage
         else:
@@ -1101,6 +1152,9 @@ class Creeper(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
     def blow(self, game):
         game.enemies.remove(self)
@@ -1196,6 +1250,9 @@ class Spider(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class CaveSpider(Spider):
@@ -1284,13 +1341,10 @@ class ArmoredZombie(BaseZombie):
         super().__init__(x, y)
         self.color_body = pygame.Color('light grey')
         self.delay_move = 10
-        self.delay_damage = 10
         self.name = 'Armored Zombie'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
         self.armor = 10
-        self.reach = 30
-        self.damage = 2
 
 
 class BabyZombie(BaseZombie):
@@ -1348,6 +1402,9 @@ class BabyZombie(BaseZombie):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class ChickenJockey(BabyZombie):
@@ -1403,6 +1460,9 @@ class ChickenJockey(BabyZombie):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 class ChickenJockeyTower(ChickenJockey):
@@ -1465,6 +1525,9 @@ class ChickenJockeyTower(ChickenJockey):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
     def take_damage(self, damage):
         super().take_damage(damage)
@@ -1490,7 +1553,7 @@ class Necromancer(BaseZombie):
         super().__init__(x, y)
         self.maintype = 'wizard'
         self.delay_move = 8
-        self.delay_damage = 200
+        self.delay_damage = 200 * 2
         self.damage = 0
         self.name = 'Necromancer'
         self.text = pygame.font.SysFont(self.name, 20).render(
@@ -1597,6 +1660,16 @@ class Skeleton(BaseSkeleton):
     pass
 
 
+class ArmoredSkeleton(BaseSkeleton):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.color_body = pygame.Color('light grey')
+        self.name = 'Armored Skeleton'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.armor = 10
+
+
 class Stray(BaseSkeleton):
     def __init__(self, x, y):
         super().__init__(x, y)
@@ -1693,6 +1766,9 @@ class SkeletonHorse(BaseZombie):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
     def transform(self, game):
         for i in range(4):
@@ -1758,18 +1834,28 @@ class Vindicator(BaseIllager):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.melee = True
-        self.weapon = dungeon_weapons.IronAxe()
+        self.weapon = dungeon_weapons.IronAxe(1)
         self.name = 'Vindicator'
         self.delay_move = 10
         self.speed = 3
         self.fix()
 
 
+class ArmoredVindicator(Vindicator):
+    def __init__(self, x, y):
+        super().__init__(x, y)
+        self.color_body = pygame.Color('light grey')
+        self.name = 'Armored Vindicator'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.armor = 10
+
+
 class Vex(BaseIllager):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.melee = True
-        self.weapon = dungeon_weapons.IronSword()
+        self.weapon = dungeon_weapons.IronSword(1)
         self.name = 'Vex'
         self.delay_move = 5
         self.speed = 5
@@ -1825,6 +1911,9 @@ class Vex(BaseIllager):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
         if self.has_weapon:
             self.weapon.render(self.rect.x + (25 if self.melee else 5),
@@ -1844,7 +1933,7 @@ class Evoker(BaseIllager):
         self.speed = 2
         self.wand_color = pygame.Color('yellow')
         self.fix()
-        self.delay_damage = 500
+        self.delay_damage = 800
 
     def wand_render(self, x, y, game):
         pygame.draw.line(game.screen, self.wand_color,
@@ -1963,7 +2052,7 @@ class Geomancer(BaseIllager):
                            (object,),
                            {'damage': 0, 'render': lambda game: ...})()
         self.fix()
-        self.delay_damage = 70
+        self.delay_damage = 70 * 3
         self.num = 0
 
     def attack(self, game):
@@ -2006,7 +2095,7 @@ class Witch(BaseIllager):
                            (object,),
                            {'damage': 0, 'render': lambda game: ...})()
         self.fix()
-        self.delay_damage = 150
+        self.delay_damage = 150 * 4
         self.color_body = pygame.Color('purple')
 
     def attack(self, game):
@@ -2074,7 +2163,7 @@ class SkeletonVanguard(RoyalGuard):  # Very similar to each other.
         self.name = 'Skeleton Vanguard'
         self.maintype = 'skeleton'
         self.secondtype = 'undead'
-        self.place = dungeon_weapons.IronSword()
+        self.place = dungeon_weapons.IronSword(1)
         self.fix()
 
     def club_render(self, x, y, game):
@@ -2217,14 +2306,18 @@ class TheCauldron(BaseEnemy):
                     pygame.draw.line(game.screen, pygame.Color('grey'),
                                      (self.rect.x, y),
                                      (self.rect.x + self.rect.width, y), 3)
+            elif self.mode == 'stunned':
+                pygame.draw.circle(game.screen, pygame.Color('yellow'),
+                                   (self.rect.x + 10, self.rect.y - 10), 8)
 
 
 easy = [Zombie, Skeleton, Stray, Slime, Creeper, Spider, BabyZombie, Piglin]
 medium = [Husk, Drowned, MossSkeleton, SpeedyZombie, Vindicator,
-          Pillager, Enchanter, RoyalGuard, ArmoredZombie,
-          ChickenJockey, CaveSpider, Iceologer, PiglinSword]
+          Pillager, Enchanter, RoyalGuard, ArmoredZombie, ArmoredVindicator,
+          ChickenJockey, CaveSpider, Iceologer, PiglinSword, ArmoredSkeleton]
 hard = [PlantZombie, FlamingSkeleton, Evoker, Geomancer,
-        ChickenJockeyTower, Witch, Enderman, PiglinBrute]
-very_hard = [Necromancer, SkeletonHorse, Wraith, RedstoneGolem]
-actual_boss = [NamelessOne, RedstoneMonstrosity, TheCauldron]
+        ChickenJockeyTower, Witch, Enderman, PiglinBrute,
+        ArmoredPiglin, ArmoredPiglinSword]
+very_hard = [Necromancer, SkeletonHorse, Wraith, RedstoneGolem, ArmoredPiglinBrute]
+boss = [NamelessOne, RedstoneMonstrosity, TheCauldron]
 spawners = [ZombieSpawner, SkeletonSpawner, SpiderSpawner, CreeperSpawner]

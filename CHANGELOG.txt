@@ -122,3 +122,10 @@
 1.5.2
     -Fixed bugs
     -Removed usage of Tkinter from world creation screen
+
+1.5.3
+    -Added armored versions of Skeleton, Vindicator, and Piglins
+
+1.6.0
+    -Absolutely overhauled game mechanics, changing enchantments and adding a power stat
+    -More updates coming, completing enchantments and fixing bugs

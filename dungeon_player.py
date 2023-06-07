@@ -30,7 +30,8 @@ class Player:
         self.rect = pygame.rect.Rect(x, y, self.width, self.height)
         self.x = x
         self.y = y
-        self.hp = 40
+        self.hpmax = 40
+        self.hp = self.hpmax
         self.weapon = None
         self.range = None
         self.consumable = None
@@ -59,9 +60,9 @@ class Player:
         self.kills = 0
         self.arrows = 10
         self.power = 0
-        self._has = []
         self.nextartype = 'default'
         self.attack_speed = 0
+        self.timelast = time.time()
 
     @property
     def power_(self):
@@ -73,10 +74,12 @@ class Player:
             return
 
         if self.cooldown > 0:
-            self.cooldown -= 1
+            self.cooldown -= time.time() - self.timelast
 
         if self.rcooldown > 0:
-            self.rcooldown -= 1
+            self.rcooldown -= time.time() - self.timelast
+
+        self.timelast = time.time()
 
         if time.time() - self.decreaseeffectslast >= 1:
             self.decreaseeffectslast = time.time()
@@ -95,8 +98,8 @@ class Player:
                 particle.particle(
                     effect, self.rect.x, self.rect.x + 30, self.rect.y, self.rect.y + 35, game)
 
-        if self.hp > 40:
-            self.hp = 40
+        if self.hp > self.hpmax:
+            self.hp = self.hpmax
 
         for artifact in self.artifacts:
             if artifact:
@@ -124,6 +127,7 @@ class Player:
         if self.armor:
             self.armor.salvage(self)
             self.armors.remove(self.armor)
+            self.hpmax -= self.armor
             # self.armor = None
             self.nextarmor(game, amount=0)
         self.update_power()
@@ -236,45 +240,39 @@ class Player:
                     return"""  # makes movement choppy
 
     def attack(self, game):
-        damage = 2
+        damage = 1
         if self.weapon:
             damage = self.weapon.damage
         if self.effects['strength'] > 0:
             damage += 2
         if self.effects['weakness'] > 0:
             damage -= 1
-        cooldown = 10
+        cooldown = .5
         if self.weapon:
             cooldown = self.weapon.cooldown
-        num = 1
-        if self.weapon:
-            num = self.weapon.num
         reach = 80
         if self.weapon:
             reach = self.weapon.reach
         knockback = 20
         if self.weapon:
             knockback = self.weapon.knockback
-        amount = 0
         self.colliderect.update(self.rect.x, self.rect.y, reach)
         for enemy in game.enemies:
-            if pygame.sprite.collide_rect(self.colliderect, enemy.hitbox) and amount < num:
+            if pygame.sprite.collide_rect(self.colliderect, enemy.hitbox):
                 if self.weapon:
                     self.weapon.attack(enemy, self, damage, knockback)
                 else:
                     enemy.take_damage(damage)
                     enemy.knockback(knockback, self)
-                amount += 1
         for i in game.other:
             if type(i) == dungeon_misc.EmeraldPot:
                 i.hit(self)
         for i in game.spawners:
-            if pygame.sprite.collide_rect(self.colliderect, i) and amount < num:
+            if pygame.sprite.collide_rect(self.colliderect, i):
                 i.take_damage(1)
-                amount += 1  # doesn't matter with weapon or not cause they die from any damage
-        self.cooldown = cooldown * random.randint(11, 15)
+        self.cooldown = cooldown
         if self.attack_speed != 0:
-            self.cooldown -= self.attack_speed * 13
+            self.cooldown -= self.attack_speed
         dungeon_settings.weapon_swing.play()
 
     def take_damage(self, damage):
@@ -282,7 +280,7 @@ class Player:
         if self.effects['resistance'] > 0:
             damage -= 2
         if self.armor:
-            damage -= self.armor._protect()
+            damage = self.armor._protect(damage)
         if damage < 0:
             damage = 0
         self.hp -= damage
@@ -400,10 +398,6 @@ class Player:
 
     def getloot(self, loot, emerald, game):
         if not isinstance(loot, list):
-            l = None
-            if loot in self._has:
-                l = loot
-                loot = type(loot)()
             if issubclass(type(loot), dungeon_weapons.BaseMeleeWeapon):
                 if True:
                     loot.cooldown -= (self.dif - 1)
@@ -414,8 +408,6 @@ class Player:
                     loot._speed += (self.dif - 1)
                     self.weapons.append(loot)
                     game.message('You got the ' + loot.name + '!', 200)
-                    if l == None:
-                        self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.BaseRangeWeapon):
                 if True:
@@ -425,33 +417,27 @@ class Player:
                     loot._speed += (self.dif - 1)
                     self.ranges.append(loot)
                     game.message('You got the ' + loot.name + '!', 200)
-                    if l == None:
-                        self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.Consumable):
                 self.consumables.append(loot)
                 game.message('You got the ' + loot.name + '!', 200)
-                if l == None:
-                    self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.BaseArmor):
                 loot.protect += (self.dif - 1) * 3
                 loot._speed += (self.dif - 1)
                 self.armors.append(loot)
                 game.message('You got the ' + loot.name + '!', 200)
-                if l == None:
-                    self._has.append(loot)
 
             elif issubclass(type(loot), dungeon_weapons.Artifact):
                 self.artifacts.append(loot)
                 game.message('You got the ' + loot.name + '!', 250)
-                if l == None:
-                    self._has.append(loot)
 
             elif isinstance(loot, str):
                 if ' arrows' in loot:
                     if True:
                         self.arrows += int(loot[:2])
+                        if self.armor:
+                            self.arrows += self.armor.arrows
                         game.message('You got ' + loot[:2] + ' Arrows!', 200)
 
                 elif loot == 'emerald':
@@ -487,13 +473,14 @@ class Player:
 
     def nextarmor(self, game, amount=1):
         if self.armor != None:
-            self.armor.remove(game)
+            self.hpmax -= self.armor.hp
         self.indexarmor += amount
         if self.indexarmor > len(self.armors) - 1:
             self.indexarmor = 0
         self.armor = self.armors[self.indexarmor]
         if self.armor != None:
-            self.armor.equip(game)
+            #self.armor.equip(game)
+            self.hpmax += self.armor.hp
         self.update_power()
 
     def na(self, i, amount=1):
@@ -551,9 +538,9 @@ class Player:
                 a = dungeon_arrows.ExplodingArrow
             self.nextartype = 'default'
             self.range.shoot(game, self, a)
-            self.rcooldown = self.range.cooldown * random.randint(11, 15)
+            self.rcooldown = self.range.cooldown
             if self.attack_speed != 0:
-                self.rcooldown -= self.attack_speed * 13
+                self.rcooldown -= self.attack_speed
             self.arrows -= 1
 
     def special2(self, game):
@@ -570,7 +557,13 @@ class Player:
             self.kills += self.range._kills
         if self.armor:
             self.kills += self.armor._kills
-        self.kills += 1
+        if self.a1:
+            self.kills += self.a1._gives_kill
+        if self.a2:
+            self.kills += self.a2._gives_kill
+        if self.a3:
+            self.kills += self.a3._gives_kill
+        #self.kills += 1
 
         self.difficulty += random.choice([1/14, 1/7])
         if self.dif == 2:
@@ -588,7 +581,8 @@ class Player:
             game.killall()
         self.dx = self.dy = 0
         self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
-        self.hp = 40
+        self.hpmax = 40
+        self.hp = self.hpmax
         self.up = self.down = self.right = self.left = False
         self.weapon = None
         self.weapons = [None]
@@ -613,7 +607,6 @@ class Player:
         self.indexarmor = 0
         self.kills = 0
         self.difficulty = 0
-        self._has.clear()
 
     def usea(self, i, game):
         if hasattr(self.a1, 'using') and self.a1.using and i == 1:
@@ -639,16 +632,27 @@ class Player:
                 self.a3.use(game, 3)
 
     def update_power(self):
-        self.power = 0
+        power = 0
+        num = 0
         if self.weapon:
-            self.power += self.weapon.get_power()
+            power += self.weapon.get_power()
+            num += 1
         if self.range:
-            self.power += self.range.get_power()
+            power += self.range.get_power()
+            num += 1
         if self.armor:
-            self.power += self.armor.get_power()
+            power += self.armor.get_power()
+            num += 1
         if self.a1:
-            self.power += self.a1.get_power()
+            power += self.a1.get_power()
+            num += 1
         if self.a2:
-            self.power += self.a2.get_power()
+            power += self.a2.get_power()
+            num += 1
         if self.a3:
-            self.power += self.a3.get_power()
+            power += self.a3.get_power()
+            num += 1
+        if num == 0:
+            self.power = 0
+            return
+        self.power = power // num

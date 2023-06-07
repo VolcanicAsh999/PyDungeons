@@ -3,18 +3,9 @@ import dungeon_weapons
 import dungeon_settings
 import random
 
-# possible loot types for rarity
-LOOTTABLES = {'common': ['common', 'common', 'common', 'common',
-                         'uncommon', 'uncommon', 'rare'],
-              'uncommon': ['common', 'uncommon', 'uncommon',
-                           'uncommon', 'uncommon', 'uncommon', 'rare', 'rare'],
-              'rare': ['common', 'uncommon', 'uncommon', 'rare', 'rare',
-                       'rare', 'rare', 'rare', 'rare', 'rare', 'epic'],
-              'epic': ['common', 'uncommon', 'rare', 'rare', 'epic', 'epic',
-                       'epic', 'epic', 'epic', 'epic', 'legendary'],
-              'legendary': ['common', 'uncommon', 'rare', 'epic', 'epic',
-                            'legendary', 'legendary', 'legendary', 'legendary',
-                            'legendary', 'legendary', 'legendary']}
+UPGRADES = ([-1] * 10 +
+            [0] * 30 +
+            [1] * 5)
 
 
 class Chest:
@@ -30,7 +21,13 @@ class Chest:
             game.chests.remove(self)
             self.rect.x = 10000
             self.rect.y = 10000
-            game.player.getloot(self.gen_loot(game.player), self.emeralds,game)
+            loot = self.gen_loot(game.player)
+            if loot == None: return
+            loot2 = []
+            for i in loot:
+                try:loot2.append(i(max(game.player.power + random.choice(UPGRADES), 1)))
+                except TypeError:loot2.append(i)
+            game.player.getloot(loot2, self.emeralds, game)
             dungeon_settings.chest_loot.play()  # play the chest looting sound
         self.draw(game)  # draw chest
 
@@ -41,9 +38,6 @@ class Chest:
 
     def gen_loot(self, player):
         return self.loot  # get loot (can get overwritten)
-
-    def weighted_choice(self, loot):
-        return random.choice(LOOTTABLES[loot])  # weighted choice?
 
 
 class PlayerLootChest:
@@ -80,18 +74,7 @@ class WeaponChest(Chest):
     outlinecolor = pygame.Color('white')
 
     def gen_loot(self, player):
-        if 0 <= player.power_ < 40:
-            loot = 'common'
-        elif 40 <= player.power_ < 60:
-            loot = 'uncommon'
-        elif 60 <= player.power_ < 90:
-            loot = 'rare'
-        elif 90 <= player.power_ < 130:
-            loot = 'epic'
-        else:
-            loot = 'legendary'
-        choice = self.weighted_choice(loot)
-        return random.choice(dungeon_weapons.wloot[choice])
+        return [random.choice(dungeon_weapons.wloot)]
 
 
 class ConsumableChest(Chest):
@@ -154,13 +137,4 @@ class ArmorChest(Chest):
     outlinecolor = pygame.Color('red')
 
     def gen_loot(self, player):
-        if 0 <= player.power_ < 20:
-            loot = 'common'
-        elif 20 <= player.power_ < 50:
-            loot = 'uncommon'
-        else:
-            loot = 'rare'
-        choice = self.weighted_choice(loot)
-        if choice == 'epic':
-            choice = 'rare'
-        return random.choice(dungeon_weapons.arloot[choice])
+        return [random.choice(dungeon_weapons.arloot)]
