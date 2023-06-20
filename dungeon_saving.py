@@ -8,8 +8,8 @@ import dungeon_helpful as dh
 import json
 import os
 
-data = {'spawners': {de.ZombieSpawner: 1, de.SkeletonSpawner: 2, de.SpiderSpawner: 3, de.CreeperSpawner: 4}, 'other': {dm.EmeraldPot: 1, dm.EvokerSpikes: 2, dm.TNT: 3, dm.ThrownPotion: 4, dm.PoisonCloud: 5, dm.GeomancerColumn: 6, dm.WraithFlames: 7, dm.IceBlock: 8}, 'helpfuls': {dh.Golem: 1, dh.Wolf: 2, dh.Bat: 3}, 'chests': {dc.WeaponChest: 1, dc.ConsumableChest: 2, dc.EmeraldChest: 3, dc.ObsidianChest: 4, dc.SupplyChest: 5, dc.SilverChest: 6, dc.ArmorChest: 7, dc.PlayerLootChest: 8, dc.InventoryChest: 9}, 'arrows': {da.Arrow: 1, da.SlowArrow: 2, da.PoisonArrow: 3, da.FlamingArrow: 4, da.ExplodingArrow: 5, da.ImplodingArrow: 6, da.SpeedWhenHurtArrow: 7, dm.ThrowingPotion: 8, da.Bolt: 9, dm.ConjuredProjectile: 10}, 'enemies': {de.Zombie: 1,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 de.Husk: 2, de.Drowned: 3, de.PlantZombie: 4, de.SpeedyZombie: 5, de.Necromancer: 6, de.Slime: 7, de.Skeleton: 8, de.Stray: 9, de.MossSkeleton: 10, de.FlamingSkeleton: 11, de.Pillager: 12, de.Vindicator: 13, de.Evoker: 14, de.Vex: 15, de.Creeper: 16, de.Spider: 17, de.Enchanter: 18, de.Geomancer: 19, de.RoyalGuard: 20, de.ArmoredZombie: 21, de.BabyZombie: 22, de.ChickenJockey: 23, de.ChickenJockeyTower: 24, de.CaveSpider: 25, de.Witch: 26, de.SkeletonHorse: 27, de.SkeletonHorseman: 28, de.Enderman: 29, de.Wraith: 30, de.SkeletonVanguard: 31, de.NamelessOne: 32, de.RedstoneGolem: 33, de.RedstoneMonstrosity: 34, de.RedstoneCube: 35, de.ConjuredSlime: 36, de.TheCauldron: 37, de.Iceologer: 38, de.Piglin: 39, de.PiglinSword: 40, de.PiglinBrute: 41}}
+data = {'spawners': {de.ZombieSpawner: 1, de.SkeletonSpawner: 2, de.SpiderSpawner: 3, de.CreeperSpawner: 4}, 'other': {dm.EmeraldPot: 1, dm.EvokerSpikes: 2, dm.TNT: 3, dm.ThrownPotion: 4, dm.PoisonCloud: 5, dm.GeomancerColumn: 6, dm.WraithFlames: 7, dm.IceBlock: 8, dm.HelpFire: 9, dm.PoisonCloud_: 10}, 'helpfuls': {dh.Golem: 1, dh.Wolf: 2, dh.Bat: 3, dh.Bee: 4}, 'chests': {dc.WeaponChest: 1, dc.EmeraldChest: 2, dc.ObsidianChest: 3, dc.SupplyChest: 4, dc.SilverChest: 5, dc.ArmorChest: 6, dc.PlayerLootChest: 7, dc.Hack: 8, dc.Hack2: 9}, 'arrows': {da.Arrow: 1, da.SlowArrow: 2, da.PoisonArrow: 3, da.FlamingArrow: 4, da.ExplodingArrow: 5, da.ImplodingArrow: 6, da.SpeedWhenHurtArrow: 7, dm.ThrowingPotion: 8, da.Bolt: 9, dm.ConjuredProjectile: 10}, 'enemies': {de.Zombie: 1, de.Husk: 2, de.Drowned: 3, de.PlantZombie: 4, de.SpeedyZombie: 5, de.Necromancer: 6, de.Slime: 7, de.Skeleton: 8, de.Stray: 9, de.MossSkeleton: 10, de.FlamingSkeleton: 11, de.Pillager: 12, de.Vindicator: 13, de.Evoker: 14, de.Vex: 15, de.Creeper: 16, de.Spider: 17, de.Enchanter: 18, de.Geomancer: 19, de.RoyalGuard: 20, de.ArmoredZombie: 21, de.BabyZombie: 22, de.ChickenJockey: 23, de.ChickenJockeyTower: 24, de.CaveSpider: 25, de.Witch: 26, de.SkeletonHorse: 27, de.SkeletonHorseman: 28, de.Enderman: 29, de.Wraith: 30, de.SkeletonVanguard: 31, de.NamelessOne: 32, de.RedstoneGolem: 33, de.RedstoneMonstrosity: 34, de.RedstoneCube: 35, de.ConjuredSlime: 36, de.TheCauldron: 37, de.Iceologer: 38, de.Piglin: 39, de.PiglinSword: 40, de.PiglinBrute: 41, de.ArmoredSkeleton: 42, de.ArmoredVindicator: 43, de.ArmoredPiglin: 44, de.ArmoredPiglinSword: 45, de.ArmoredPiglinBrute: 46}}
+
 data2 = {c: {a: b for b, a in data[c].items()} for c in data.keys()}
 
 path = os.path.join(os.environ.get('APPDATA'), '.pydungeons', 'saves')
@@ -21,7 +21,7 @@ def reload():
     global data, data2
     data2 = {c: {a: b for b, a in data[c].items()} for c in data.keys()}
 
-
+'''
 def nextChest():
     return len(data['chests'].keys()) + 1
 
@@ -44,7 +44,7 @@ def nextOther():
 
 def nextSpawner():
     return len(data['spawners'].keys()) + 1
-
+'''
 
 def remdups(l):  # helper function
     l2 = []
@@ -141,10 +141,14 @@ def save_world(game, name, filename):
     for chest in game.chests:
         load_text['Chests'] += [{'x': chest.rect.x,
                                  'y': chest.rect.y, 'type': data['chests'][type(chest)]}]
+        if type(chest) == dc.Hack:
+            load_text['Chests'][-1]['cons'] = chest.cons.name
+        elif type(chest) == dc.Hack2:
+            load_text['Chests'][-1]['ems'] = chest.ems
     for helpful in game.helpfuls:
         if type(helpful) == dh.Bat:
             continue
-        load_text['Helpfuls'] += [{'x': helpful.rect.x, 'y': helpful.rect.y,
+        load_text['Helpfuls'] += [{'x': helpful.rect.x, 'y': helpful.rect.y, 'pow': helpful.pow,
                                    'type': data['helpfuls'][type(helpful)], 'hp': helpful.hp, 'effects': helpful.effects}]
     for other in game.other:
         load_text['Others'] += [other.get_save_data()]
@@ -155,9 +159,9 @@ def save_world(game, name, filename):
     for weapon in p.weapons:
         if weapon == None:
             continue
-        load_text['Player']['weapons'] += [{'Name': weapon.name, 'bonus': weapon._bonus, 'cooldown': weapon.cooldown, 'num': weapon.num,
+        load_text['Player']['weapons'] += [{'Name': weapon.name, 'bonus': weapon._bonus, 'cooldown': weapon.cooldown,
                                            'damage': weapon.damage, 'reach': weapon.reach, 'knockback': weapon.knockback, 'spent': weapon._spent,
-                                            'speed': weapon._speed, 'enchant': weapon._enchant}]
+                                            'speed': weapon._speed, 'pow': weapon.pow, 'slots': {str(i): j for i, j in weapon.slots.items()}, 'slotlevel': {str(i): j for i, j in weapon.slotlevel.items()}}]
     for rang in p.ranges:
         if rang == None:
             continue
@@ -165,12 +169,13 @@ def save_world(game, name, filename):
                                            'damage': rang.arrow['damage'], 'knockback': rang.arrow['knockback'],
                                            'name': rang.arrow['name'], 'type': data['arrows'][rang.arrow['type']],
                                            'spent': rang._spent, 'enchant': rang._enchant, 'speed': rang._speed,
-                                           'num': rang.numshoot, 'stack': rang._amount_chained}]
+                                           'num': rang.numshoot, 'stack': rang._amount_chained, 'pow': rang.pow}]
     for armor in p.armors:
         if armor == None:
             continue
         load_text['Player']['armors'] += [{'Name': armor.name, 'bonus': armor._bonus, 'speed': armor._speed,
-                                           'spent': armor._spent, 'enchant': armor._enchant, 'protect': armor.protect}]
+                                           'spent': armor._spent, 'enchant': armor._enchant, 'protect': armor.protect, 'hp': armor.hp,
+                                           'pow': armor.pow}]
     for cons in p.consumables:
         if cons == None:
             continue
@@ -179,9 +184,7 @@ def save_world(game, name, filename):
         if art == None:
             continue
         load_text['Player']['artifacts'] += [
-            {'Name': art.name, 'cooldown': art.cooldown}]
-    for obj in p._has:
-        load_text['Player']['has'] += [{'Name': obj.name}]
+            {'Name': art.name, 'cooldown': art.cooldown, 'pow': art.pow}]
     load_text['Player']['has'] = remdups(load_text['Player']['has'])
 
     if not filename.endswith('.json'):
@@ -207,11 +210,6 @@ def load_world(game, filename):
     p.level, p.level_prog = pd['level'], pd['prog']
     p.indexarmor, p.indexweapon, p.indexrange, p.indexc, p.ia1, p.ia2, p.ia3 = pd['index']
     p.cooldown, p.rcooldown = pd['cooldowns']
-    for obj in pd['has']:
-        item = None
-        for thing in dw.wloot['common'] + dw.wloot['uncommon'] + dw.wloot['rare'] + dw.wloot['epic'] + dw.wloot['legendary'] + dw.sloot:
-            if (type(thing) != str) and thing.name == obj['Name']:
-                p._has.append(thing)
     for cons in pd['consumables']:
         if cons == None:
             continue
@@ -226,8 +224,8 @@ def load_world(game, filename):
             continue
         item = None
         for thing in dw.aloot:
-            if thing.name == art['Name']:
-                item = type(thing)()
+            if thing(0).name == art['Name']:
+                item = thing(art['pow'])
                 break
         item.cooldown = art['cooldown']
         p.artifacts.append(item)
@@ -235,24 +233,26 @@ def load_world(game, filename):
         if armor == None:
             continue
         item = None
-        for thing in dw.arloot['common'] + dw.arloot['uncommon'] + dw.arloot['rare']:
-            if thing.name == armor['Name']:
-                item = type(thing)()
+        for thing in dw.arloot:
+            if thing(0).name == armor['Name']:
+                item = thing(armor['pow'])
                 break
         item._bonus = armor['bonus']
         item._spent, item._enchant = armor['spent'], armor['enchant']
         item._speed = armor['speed']
         item.protect = armor['protect']
+        item.hp = armor['hp']
         item.update_descript()
         p.armors.append(item)
     for rang in pd['ranges']:
         if rang == None:
             continue
         item = None
-        for thing in dw.wloot['common'] + dw.wloot['uncommon'] + dw.wloot['rare'] + dw.wloot['epic'] + dw.wloot['legendary']:
-            if thing.name == rang['Name']:
-                item = type(thing)()
+        for thing in dw.wloot:
+            if thing(0).name == rang['Name']:
+                item = thing(rang['pow'])
                 break
+        if item is None: print(rang['Name'])
         item._bonus = rang['bonus']
         item.cooldown, item.arrow['damage'], item.arrow['knockback'], item.arrow['type'], item.arrow[
             'name'] = rang['cooldown'], rang['damage'], rang['knockback'], data2['arrows'][rang['type']], rang['name']
@@ -266,15 +266,16 @@ def load_world(game, filename):
         if weapon == None:
             continue
         item = None
-        for thing in dw.wloot['common'] + dw.wloot['uncommon'] + dw.wloot['rare'] + dw.wloot['epic'] + dw.wloot['legendary']:
-            if thing.name == weapon['Name']:
-                item = type(thing)()
+        for thing in dw.wloot:
+            if thing(0).name == weapon['Name']:
+                item = thing(weapon['pow'])
                 break
         item._bonus = weapon['bonus']
-        item.cooldown, item.num, item.damage, item.reach, item.knockback = weapon[
-            'cooldown'], weapon['num'], weapon['damage'], weapon['reach'], weapon['knockback']
-        item._spent, item._enchant = weapon['spent'], weapon['enchant']
+        item.cooldown, item.damage, item.reach, item.knockback = weapon[
+            'cooldown'], weapon['damage'], weapon['reach'], weapon['knockback']
+        item._spent = weapon['spent']
         item._speed = weapon['speed']
+        item.slots, item.slotlevel = {int(i): j for i, j in weapon['slots'].items()}, {int(i): j for i, j in weapon['slotlevel'].items()}
         item.update_descript()
         p.weapons.append(item)
     p.effects = pd['effects']
@@ -304,10 +305,21 @@ def load_world(game, filename):
             enem.size = enemy['size']
         game.enemies.append(enem)
     for chest in load_text['Chests']:
-        ches = data2['chests'][chest['type']](chest['x'], chest['y'])
+        t = data2['chests'][chest['type']]
+        if t == dc.Hack:
+            t2 = None
+            for i in dw.cloot:
+                if type(i) == str: continue
+                if i.name == chest['cons']:
+                    t2 = i
+            ches = t(chest['x'], chest['y'], type(t2)())
+        elif t == dc.Hack2:
+            ches = t(chest['x'], chest['y'], chest['ems'])
+        else:
+            ches = t(chest['x'], chest['y'])
         game.chests.append(ches)
     for helpful in load_text['Helpfuls']:
-        helpfu = data2['helpfuls'][helpful['type']](helpful['x'], helpful['y'])
+        helpfu = data2['helpfuls'][helpful['type']](helpful['x'], helpful['y'], helpful['pow'])
         helpfu.hp = helpful['hp']
         helpfu.effects.update(helpful['effects'])
         game.helpfuls.append(helpfu)

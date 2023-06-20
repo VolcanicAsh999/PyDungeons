@@ -3,9 +3,16 @@ import dungeon_weapons
 import dungeon_settings
 import random
 
-UPGRADES = ([-1] * 10 +
-            [0] * 30 +
-            [1] * 5)
+UPGRADES = [([-1] * 1 +
+            [0] * 9 +
+            [1] * 5),
+            ([0] * 9 +
+             [1] * 6),
+            ([0] * 8 +
+             [1] * 7),
+            ([0] * 6 +
+             [1] * 9)
+            ]
 
 
 class Chest:
@@ -25,7 +32,7 @@ class Chest:
             if loot == None: return
             loot2 = []
             for i in loot:
-                try:loot2.append(i(max(game.player.power + random.choice(UPGRADES), 1)))
+                try:loot2.append(i(max(game.player.power + random.choice(UPGRADES[(game.player.armor.get_ench('Luck of the Sea') if game.player.armor else 0)]), 1)))
                 except TypeError:loot2.append(i)
             game.player.getloot(loot2, self.emeralds, game)
             dungeon_settings.chest_loot.play()  # play the chest looting sound
@@ -38,6 +45,44 @@ class Chest:
 
     def gen_loot(self, player):
         return self.loot  # get loot (can get overwritten)
+
+
+class Hack(Chest):  # Uses chest mechanism to pick up consumables
+    def __init__(self, x, y, cons):
+        self.rect = pygame.Rect(x, y, 20, 20)
+        self.cons = cons
+
+    def render(self, game):
+        if pygame.sprite.collide_rect(game.player, self):
+            game.chests.remove(self)
+            self.rect.x = 10000
+            self.rect.y = 10000
+            game.player.consumables.append(self.cons)
+        self.draw(game)
+
+    def draw(self, game):
+        if type(self.cons) == str:
+            return
+        self.cons.render(self.rect.x, self.rect.y, game)
+
+
+class Hack2(Chest):
+    def __init__(self, x, y, ems):
+        self.rect = pygame.Rect(x, y, 20, 20)
+        self.ems = ems
+
+    def render(self, game):
+        if pygame.sprite.collide_rect(game.player, self):
+            game.chests.remove(self)
+            self.rect.x = 10000
+            self.rect.y = 10000
+            game.player.emeralds += self.ems
+        self.draw(game)
+
+    def draw(self, game):
+        pygame.draw.polygon(game.screen, pygame.Color('green'), [
+                            (self.rect.x + 5, self.rect.y + 10), (self.rect.x + 5, self.rect.y + 20), (self.rect.x + 10, self.rect.y + 25),
+                            (self.rect.x + 15, self.rect.y + 20), (self.rect.x + 15, self.rect.y + 10), (self.rect.x + 10, self.rect.y + 5)])
 
 
 class PlayerLootChest:
@@ -77,15 +122,7 @@ class WeaponChest(Chest):
         return [random.choice(dungeon_weapons.wloot)]
 
 
-class ConsumableChest(Chest):
-    outlinecolor = pygame.Color('yellow')
-
-    def gen_loot(self, player):
-        return [random.choice(dungeon_weapons.cloot)
-                for i in range(random.randint(2, 5))]  # get some consumables
-
-
-class InventoryChest(Chest):
+class SupplyChest(Chest):
     outlinecolor = pygame.Color('black')
 
     def gen_loot(self, player):
@@ -109,19 +146,6 @@ class ObsidianChest(Chest):
     def gen_loot(self, player):
         return [random.choice(dungeon_weapons.aloot)
                 for i in range(random.randint(1, 2))]  # get 1 or 2 artifacts
-
-
-class SupplyChest(Chest):
-    outlinecolor = pygame.Color('blue')
-
-    def gen_loot(self, player):
-        return [random.choice(dungeon_weapons.cloot)
-                for i in range(random.randint(1, 3))] + \
-                ['emerald' for i in range(random.choice([0, 2]))]
-
-    def __init__(self, x, y):
-        super().__init__(x, y)
-        self.emeralds = (7, 14)
 
 
 class SilverChest(Chest):

@@ -1,5 +1,5 @@
-import sys, os
+import dungeon_main
+import os
+import sys
 sys.path.insert(0, os.path.dirname(__file__))
-import dungeons_launcher
-dungeons_launcher.main()
-#um, no
+dungeon_main.main()

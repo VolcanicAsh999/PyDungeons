@@ -4,6 +4,8 @@ import dungeon_arrows
 import dungeon_misc
 import dungeon_settings
 import dungeon_helpful
+import dungeon_gui
+import dungeon_chests
 import time
 import math
 from threading import Thread
@@ -19,26 +21,41 @@ def distance_to(target1, target2):
 
 
 class BaseMeleeWeapon:
+    enchants = ['Leeching', 'Sharpness', 'Smiting', 'Illager\'s Bane', 'Radiance', 'Chains', 'Anima Conduit',
+                'Ambush', 'Comitted', 'Echo', 'Fire Aspect', 'Freezing', 'Leeching', 'Looting', 'Poison Cloud',
+                'Prospector', 'Rampaging', 'Soul Siphon', 'Stunning', 'Thundering', 'Weakening', 'Critical Hit',
+                'Exploding', 'Gravity', 'Shockwave', 'Swirling', 'Void Strike', 'Refreshment', 'Busy Bee', 'Dynamo',
+                'Guarding Strike', 'Pain Cycle', 'Unchanting']
+    
     def __repr__(self):
-        return f'{self.name}(damage={self.damage}, cooldown={self.cooldown}, reach={self.reach}, num={self.num}, knockback={self.knockback}, enchantments=[{", ".join(self._bonus)}], speed={self._speed})'
+        return f'{self.name}(damage={self.damage}, cooldown={self.cooldown}, reach={self.reach}, knockback={self.knockback}, speed={self._speed}, power={self.pow})'
 
     def __init__(self, pow):
         self.damage = 0
         self.cooldown = 0
         self.reach = 0
-        self.num = float('inf')
         self.knockback = 0
         self.descript = ''
         self.name = ''
         self.x = 0
         self.y = 0
         self._spent = 0
-        self._enchant = 0
         self._speed = 0
         self._kills = 0
-        self._bonus = []
-        self._ = 1
         self.pow = 0
+        self._bonus = []
+        self.slots = {1: None, 2: None, 3: None}
+        self.slotlevel = {1: 0, 2: 0, 3: 0}
+        self.cools = {'echo': 0, 'rampaging': 0}
+        self.lasttime = time.time()
+        self.bees = []
+        self.stacked = 0
+        self.randomize_enchants()
+
+    def randomize_enchants(self):
+        self.slots[1] = random.choice(BaseMeleeWeapon.enchants)
+        self.slots[2] = random.choice(BaseMeleeWeapon.enchants)
+        self.slots[3] = random.choice(BaseMeleeWeapon.enchants)
 
     def show_info(self, x, y, game):
         text1 = pygame.font.SysFont(self.name, 20)
@@ -54,101 +71,448 @@ class BaseMeleeWeapon:
     def render(self, x, y, game):
         self.x = x
         self.y = y
+        for key, val in self.cools.items():
+            if val > 0:
+                self.cools[key] -= time.time() - self.lasttime
+        if self.cools['rampaging'] < 0:
+            game.player.attack_speed += .5
         self.draw(game)
+        self.lasttime = time.time()
 
     def draw(self, game):
         pass
 
     def salvage(self, player):
-        player.emeralds += random.randint(3, 7) + self._enchant
+        player.emeralds += random.randint(13, 17)
         player.level += self._spent
 
-    def enchant(self, spent, game):
-        self._spent += spent
-        if spent == 1:
-            self.apply_enchant(1, game)
-            return 0
-        elif spent == 2:
-            self.apply_enchant(2, game)
-            return 0
-        elif spent == 3:
-            self.apply_enchant(3, game)
-            return 0
-        else:
-            self.apply_enchant(4, game)
-            return spent - 4
+    def enchant(self, game):
+        index = dungeon_gui.get_enchant(self, game)
+        if game.player.level <= self.slotlevel[index]: return game.player.level
+        self._spent += self.slotlevel[index] + 1
+        self.slotlevel[index] += 1
+        self.update_descript()
+        return game.player.level - self.slotlevel[index]
 
     def update_descript(self):
         if type(self.damage) == float:
             self.damage = random.choice([int(self.damage), int(self.damage) + 1])
         if self.damage < 1: self.damage = 1
-        self.descript = ['', '', '', '', '', '']
+        self.descript = ['', '', '', '', '', '', '']
         self.descript[1] = f'Cooldown: {self.cooldown}'
         self.descript[3] = f'Damage: {self.damage}'
         self.descript[2] = f'Reach: {self.reach}'
         self.descript[0] = f'Knockback: {self.knockback}'
         self.descript[4] = f'Speed increase: {self._speed}'
-        if self._bonus:
-            self.descript += self._bonus
+        self.descript[5] = f'Power: {self.pow}'
+        if self.slotlevel[1] > 0:
+            self.descript.append(f'{self.slots[1]} [{self.slotlevel[1]}')
+        if self.slotlevel[2] > 0:
+            self.descript.append(f'{self.slots[2]} [{self.slotlevel[2]}')
+        if self.slotlevel[3] > 0:
+            self.descript.append(f'{self.slots[3]} [{self.slotlevel[3]}')
+        for i in self._bonus:
+            self.descript.append(i)
 
-    def apply_enchant(self, level, game):
-        if level == 2:
-            enchant = random.choice(['Chains'])
-            if enchant == 'Chains':
-                self._bonus.append('Chains')
-        elif level == 3:
-            enchant = random.choice(['Leeching I', 'Chains'])
-            if enchant == 'Leeching I':
-                self._bonus.append('Leeching I')
-            elif enchant == 'Chains':
-                self._bonus.append('Chains')
-        elif level == 4:
-            enchant = random.choice(['Leeching I', 'Leeching II', 'Radiance', 'Chains'])
-            if enchant == 'Radiance':
-                self._bonus.append('Radiance')
-            elif enchant == 'Chains':
-                self._bonus.append('Chains')
-            elif enchant == 'Leeching I':
-                self._bonus.append('Leeching I')
-            elif enchant == 'Leeching II':
-                if 'Leeching I' in self._bonus: self._bonus.remove('Leeching I')
-                self._bonus.append('Leeching II')
-
-    def attack(self, enemy, player, damage, knockback):
+    def attack(self, enemy, player, damage, knockback, game):
         enemy.take_damage(damage)
         enemy.knockback(knockback, player)
         dungeon_settings.weapon_hit.play()
-        if 'Relentless Combo' in self._bonus:
-            self._ += 1
-            if self._ >= 5:
-                self._ = 1
-                self.damage += 1
-                if self.damage > 30:
-                    self.damage = 30
-                else:
-                    self.update_descript()
-        if 'Radiance' in self._bonus and random.randint(0, 10) == 0:
-            #for x in game.helpfuls:
-            #    if distance_to(x, game.player) < 100:
-            #        x.hp += 5
-            player.hp += 5
-        if 'Chains' in self._bonus:
-            enemy.give_unmoving(5, 'chains')
-        if 'Leeching I' in self._bonus:
-            player.hp += round(damage / 5)
-        elif 'Leeching II' in self._bonus:
-            player.hp += round(damage / 3)
+        if 'Heals nearby allies' in self._bonus and random.randint(0, 4) == 0:
+            for x in game.helpfuls:
+                if distance_to(x, game.player) < 100:
+                    x.hp += 1
+            player.hp += 1
+        if 'Chains mobs' in self._bonus and random.randint(1, 10) < 4:
+            enemy.give_unmoving(1, 'chains')
+        if 'Steals health on hit' in self._bonus:
+            player.hp += round(damage * .04)
+        if 'Extra damage to undead' in self._bonus and enemy.secondtype == 'undead':
+            enemy.take_damage(damage * .2)
+        if 'Pulls in mobs' in self._bonus:
+            for i in game.enemies:
+                for j in range(5):
+                    if self.x < i.rect.x:
+                        i.rect.x -= 3
+                    else:
+                        i.rect.x += 3
+                    if self.y < i.rect.y:
+                        i.rect.y -= 3
+                    else:
+                        i.rect.y += 3
+
+                i.hitbox.update(i.rect.x, i.rect.y, i.reach)
+            
+        if 'Extra damage to unsuspecting enemies' in self._bonus and enemy.get_target(player._game) != player:
+            enemy.take_damage(damage * .2)
+
+        enemy.give_unmoving(random.uniform(max(self.cooldown-.1, .1), max(self.cooldown+.1, .3)), 'got whacked boi')
+        
+        self.check_enchants('attack', player, enemy, damage, knockback, game)
 
     def speed(self, amount):
         self._speed += amount
 
     def get_power(self):
         return self.pow
+
+    def check_enchants(self, trigger, player, enemy=None, damage=0, knockback=0, game=None):
+        if trigger == 'roll':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:  # level 1 enchants
+                    if self.slots[i] == 'Dynamo' and self.stacked < 20:
+                        self.stacked += 1
+                elif self.slotlevel[i] == 2:
+                    if self.slots[i] == 'Dynamo' and self.stacked < 20:
+                        self.stacked += 1
+                elif self.slotlevel[i] == 3:
+                    if self.slots[i] == 'Dynamo' and self.stacked < 20:
+                        self.stacked += 1
+        elif trigger == 'attack':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:  # level 1 enchants
+                    if self.slots[i] == 'Chains' and random.randint(1, 10) < 4:
+                        enemy.give_unmoving(1, 'chains')
+                    elif self.slots[i] == 'Sharpness':
+                        enemy.take_damage(damage * .1)
+                    elif self.slots[i] == 'Smiting' and enemy.secondtype == 'undead':
+                        enemy.take_damage(damage * .2)
+                    elif self.slots[i] == 'Illager\'s Bane' and enemy.maintype == 'illager':
+                        enemy.take_damage(damage * .2)
+                    elif self.slots[i] == 'Radiance' and random.randint(0, 4) == 0:
+                        for x in game.helpfuls:
+                            if distance_to(x, player) < 100:
+                                x.hp += 1 + (self.pow * .02)
+                        player.hp += 1 + (self.pow * .02)
+                    elif self.slots[i] == 'Leeching':
+                        player.hp += (damage * .04)
+                    elif self.slots[i] == 'Anima Conduit':
+                        if enemy.hp <= 0:
+                            player.kills += 1
+                            player.hp += enemy.hpmax * .02
+                    elif self.slots[i] == 'Ambush' and enemy.get_target(game) != player:
+                        enemy.take_damage(damage * .2)
+                    elif self.slots[i] == 'Commited':
+                        enemy.take_damage(((damage + enemy.hpmax - enemy.hp) / enemy.hpmax) * 50)
+                    elif self.slots[i] == 'Echo' and self.cools['echo'] <= 0:
+                        enemy.take_damage(damage)
+                        self.cools['echo'] = 5
+                    elif self.slots[i] == 'Fire Aspect':
+                        enemy.effects_['fire'] = (3, 1 + (self.pow * .02))
+                    elif self.slots[i] == 'Freezing':
+                        enemy.effects_['freezing'] = (3, .8)
+                    elif self.slots[i] == 'Looting' and enemy.hp <= 0:
+                        enemy.luck_cons += 100
+                    elif self.slots[i] == 'Poison Cloud':
+                        game.other.append(dungeon_misc.PoisonCloud_(self.x, self.y, 1 + (self.pow * .02)))
+                    elif self.slots[i] == 'Prospector' and enemy.hp <= 0:
+                        enemy.luck_ems += 100
+                    elif self.slots[i] == 'Rampaging' and self.cools['rampaging'] < 0 and random.randint(1, 10) == 1:
+                        player.attack_speed -= .5
+                        self.cools['rampaging'] = 5
+                    elif self.slots[i] == 'Soul Siphon' and enemy.hp <= 0 and random.randint(1, 10) == 1:
+                        player.kills += 3
+                    elif self.slots[i] == 'Stunning' and random.randint(1, 100) < 6:
+                        enemy.give_unmoving(1, 'stunned')
+                    elif self.slots[i] == 'Thundering' and random.randint(1, 10) < 4:
+                        for i in range(20):
+                            game.play()
+                            pygame.draw.line(game.screen, pygame.Color('light blue'), (self.x, self.y), (self.x + random.randint(-5, 5), self.y - 30 + random.randint(-10, 5)), 4)
+                            pygame.display.update()
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 60:
+                                enemy.take_damage(3 + (self.pow * .01))
+                    elif self.slots[i] == 'Weakening':
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 100:
+                                enemy.effects_['weakened'] = (5, .8)
+                    elif self.slots[i] == 'Critical Hit' and random.randint(0, 100) < 11:
+                        enemy.take_damage(damage * 2)
+                    elif self.slots[i] == 'Exploding' and enemy.hp <= 0:
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (enemy.rect.x, enemy.rect.y)) < 70:
+                                i.take_damage(enemy.hpmax * .2)
+                    elif self.slots[i] == 'Gravity':
+                        for i in game.enemies:
+                            for j in range(5):
+                                if self.x < i.rect.x:
+                                    i.rect.x -= 3
+                                else:
+                                    i.rect.x += 3
+                                if self.y < i.rect.y:
+                                    i.rect.y -= 3
+                                else:
+                                    i.rect.y += 3
+                            i.hitbox.update(i.rect.x, i.rect.y, i.reach)
+                    elif (self.slots[i] == 'Shockwave' or self.slots[i] == 'Swirling') and random.randint(0, 5) == 0:  # Make them the same because simplicity
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 100:
+                                enemy.take_damage(2 + (self.pow * .02))
+                    elif self.slots[i] == 'Void Strike':
+                        if enemy.effects_['void strike'][0] < 0:
+                            enemy.effects_['void strike'] = (4,1)
+                        else:
+                            if enemy.effects_['void strike'][0] >= 1:
+                                time = 4 - enemy.effects_['void strike'][0]
+                                enemy.take_damage(((time/3) * 2) * damage)
+                            else:
+                                enemy.take_damage(2 * damage)
+                            enemy.effects_['void strike'] = (-1,1)
+                    elif self.slots[i] == 'Refreshment' and enemy.hp <= 0:
+                        if player.potion_cooldown >= 1:
+                            player.potion_cooldown -= 1
+                    elif self.slots[i] == 'Busy Bee' and random.randint(1, 10) < 3:
+                        bee = dungeon_helpful.Bee(self.x, self.y, self.pow)
+                        self.bees.append(bee)
+                        game.helpfuls.append(bee)
+                        if len(self.bees) > 3:
+                            game.helpfuls.remove(self.bees.pop(0))
+                    elif self.slots[i] == 'Dynamo' and self.stacked > 0:
+                        extra = damage + ((self.stacked - 1) * (damage * .5))
+                    elif self.slots[i] == 'Guarding Strike':
+                        player.effects_['guarding strike'] = (2, .5)
+                    elif self.slots[i] == 'Pain Cycle':
+                        if player._pain >= 5:
+                            player._pain = 0
+                            enemy.take_damage(3 * damage)
+                        else:
+                            player.hp *= .97
+                            player._pain += 1
+                    elif self.slots[i] == 'Unchanting' and enemy.enchants:
+                        enemy.take_damage(damage * .5)
+                elif self.slotlevel[i] == 2:  # level 2 enchants
+                    if self.slots[i] == 'Chains' and random.randint(1, 10) < 4:
+                        enemy.give_unmoving(2, 'chains')
+                    elif self.slots[i] == 'Sharpness':
+                        enemy.take_damage(damage * .21)
+                    elif self.slots[i] == 'Smiting' and enemy.secondtype == 'undead':
+                        enemy.take_damage(damage / 3)
+                    elif self.slots[i] == 'Illager\'s Bane' and enemy.maintype == 'illager':
+                        enemy.take_damage(damage / 3)
+                    elif self.slots[i] == 'Radiance' and random.randint(0, 4) == 0:
+                        for x in game.helpfuls:
+                            if distance_to(x, player) < 100:
+                                x.hp += 2 + (self.pow * .025)
+                        player.hp += 2 + (self.pow * .025)
+                    elif self.slots[i] == 'Leeching':
+                        player.hp += (damage * .06)
+                    elif self.slots[i] == 'Anima Conduit':
+                        if enemy.hp <= 0:
+                            player.kills += 1
+                            player.hp += enemy.hpmax * .04
+                    elif self.slots[i] == 'Ambush' and enemy.get_target(game) != player:
+                        enemy.take_damage(damage * .4)
+                    elif self.slots[i] == 'Commited':
+                        enemy.take_damage(((damage + enemy.hpmax - enemy.hp) / enemy.hpmax) * 75)
+                    elif self.slots[i] == 'Echo' and self.cools['echo'] <= 0:
+                        enemy.take_damage(damage)
+                        self.cools['echo'] = 4
+                    elif self.slots[i] == 'Fire Aspect':
+                        enemy.effects_['fire'] = (3, 2 + (self.pow * .02))
+                    elif self.slots[i] == 'Freezing':
+                        enemy.effects_['freezing'] = (3, .6)
+                    elif self.slots[i] == 'Looting':
+                        enemy.luck_cons += 200
+                    elif self.slots[i] == 'Poison Cloud':
+                        game.other.append(dungeon_misc.PoisonCloud_(self.x, self.y, 2 + (self.pow * .025)))
+                    elif self.slots[i] == 'Prospector' and enemy.hp <= 0:
+                        enemy.luck_ems += 200
+                    elif self.slots[i] == 'Rampaging' and self.cools['rampaging'] < 0 and random.randint(1, 10) == 1:
+                        player.attack_speed -= .5
+                        self.cools['rampaging'] = 10
+                    elif self.slots[i] == 'Soul Siphon' and enemy.hp <= 0 and random.randint(1, 10) == 1:
+                        player.kills += 6
+                    elif self.slots[i] == 'Stunning' and random.randint(1, 100) < 11:
+                        enemy.give_unmoving(1, 'stunned')
+                    elif self.slots[i] == 'Thundering' and random.randint(1, 10) < 4:
+                        for i in range(20):
+                            game.play()
+                            pygame.draw.line(player._game.screen, pygame.Color('light blue'), (self.x, self.y), (self.x + random.randint(-5, 5), self.y - 30 + random.randint(-10, 5)), 4)
+                            pygame.display.update()
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 60:
+                                enemy.take_damage(4 + (self.pow * .02))
+                    elif self.slots[i] == 'Weakening':
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 100:
+                                enemy.effects_['weakened'] = (5, .7)
+                    elif self.slots[i] == 'Critical Hit' and random.randint(0, 100) < 16:
+                        enemy.take_damage(damage * 2)
+                    elif self.slots[i] == 'Exploding' and enemy.hp <= 0:
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (enemy.rect.x, enemy.rect.y)) < 70:
+                                i.take_damage(enemy.hpmax * .4)
+                    elif self.slots[i] == 'Gravity':
+                        for i in game.enemies:
+                            for j in range(6):
+                                if self.x < i.rect.x:
+                                    i.rect.x -= 4
+                                else:
+                                    i.rect.x += 4
+                                if self.y < i.rect.y:
+                                    i.rect.y -= 4
+                                else:
+                                    i.rect.y += 4
+                            i.hitbox.update(i.rect.x, i.rect.y, i.reach)
+                    elif (self.slots[i] == 'Shockwave' or self.slots[i] == 'Swirling') and random.randint(0, 5) == 0:  # Make them the same because simplicity
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 100:
+                                enemy.take_damage(3 + (self.pow * .03))
+                    elif self.slots[i] == 'Void Strike':
+                        if enemy.effects_['void strike'][0] < 0:
+                            enemy.effects_['void strike'] = (4,1)
+                        else:
+                            if enemy.effects_['void strike'][0] >= 1:
+                                time = 4 - enemy.effects_['void strike'][0]
+                                enemy.take_damage(((time/3) * 4) * damage)
+                            else:
+                                enemy.take_damage(4 * damage)
+                            enemy.effects_['void strike'] = (-1,1)
+                    elif self.slots[i] == 'Refreshment' and enemy.hp <= 0:
+                        if player.potion_cooldown >= 2:
+                            player.potion_cooldown -= 2
+                    elif self.slots[i] == 'Busy Bee' and random.randint(1, 10) < 4:
+                        bee = dungeon_helpful.Bee(self.x, self.y, self.pow)
+                        self.bees.append(bee)
+                        game.helpfuls.append(bee)
+                        if len(self.bees) > 3:
+                            game.helpfuls.remove(self.bees.pop(0))
+                    elif self.slots[i] == 'Dynamo' and self.stacked > 0:
+                        extra = (damage * 1.25) + ((self.stacked - 1) * (damage * .75))
+                    elif self.slots[i] == 'Guarding Strike':
+                        player.effects_['guarding strike'] = (2, .5)
+                    elif self.slots[i] == 'Pain Cycle':
+                        if player._pain >= 5:
+                            player._pain = 0
+                            enemy.take_damage(4 * damage)
+                        else:
+                            player.hp *= .97
+                            player._pain += 1
+                    elif self.slots[i] == 'Unchanting' and enemy.enchants:
+                        enemy.take_damage(damage * .75)
+                elif self.slotlevel[i] == 3:  # level 3 enchants
+                    if self.slots[i] == 'Chains' and random.randint(1, 10) < 4:
+                        enemy.give_unmoving(3, 'chains')
+                    elif self.slots[i] == 'Sharpness':
+                        enemy.take_damage(damage / 3)
+                    elif self.slots[i] == 'Smiting' and enemy.secondtype == 'undead':
+                        enemy.take_damage(damage * .4)
+                    elif self.slots[i] == 'Illager\'s Bane' and enemy.maintype == 'illager':
+                        enemy.take_damage(damage * .4)
+                    elif self.slots[i] == 'Radiance' and random.randint(0, 4) == 0:
+                        for x in game.helpfuls:
+                            if distance_to(x, player) < 100:
+                                x.hp += 3 + (self.pow * .03)
+                        player.hp += 3 + (self.pow * .03)
+                    elif self.slots[i] == 'Leeching':
+                        player.hp += (damage * .08)
+                    elif self.slots[i] == 'Anima Conduit':
+                        if enemy.hp <= 0:
+                            player.kills += 1
+                            player.hp += enemy.hpmax * .06
+                    elif self.slots[i] == 'Ambush' and enemy.get_target(game) != player:
+                        enemy.take_damage(damage * .6)
+                    elif self.slots[i] == 'Commited':
+                        enemy.take_damage(((damage + enemy.hpmax - enemy.hp) / enemy.hpmax) * 100)
+                    elif self.slots[i] == 'Echo' and self.cools['echo'] <= 0:
+                        enemy.take_damage(damage)
+                        self.cools['echo'] = 3
+                    elif self.slots[i] == 'Fire Aspect':
+                        enemy.effects_['fire'] = (3, 3 + (self.pow * .03))
+                    elif self.slots[i] == 'Freezing':
+                        enemy.effects_['freezing'] = (3, .4)
+                    elif self.slots[i] == 'Looting':
+                        enemy.luck_cons += 300
+                    elif self.slots[i] == 'Poison Cloud':
+                        player._game.other.append(dungeon_misc.PoisonCloud_(self.x, self.y, 3 + (self.pow * .03)))
+                    elif self.slots[i] == 'Prospector' and enemy.hp <= 0:
+                        enemy.luck_ems += 300
+                    elif self.slots[i] == 'Rampaging' and self.cools['rampaging'] < 0 and random.randint(1, 10) == 1:
+                        player.attack_speed -= .5
+                        self.cools['rampaging'] = 15
+                    elif self.slots[i] == 'Soul Siphon' and enemy.hp <= 0 and random.randint(1, 10) == 1:
+                        player.kills += 9
+                    elif self.slots[i] == 'Stunning' and random.randint(1, 100) < 16:
+                        enemy.give_unmoving(1, 'stunned')
+                    elif self.slots[i] == 'Thundering' and random.randint(1, 10) < 4:
+                        for i in range(20):
+                            game.play()
+                            pygame.draw.line(game.screen, pygame.Color('light blue'), (self.x, self.y), (self.x + random.randint(-5, 5), self.y - 30 + random.randint(-10, 5)), 4)
+                            pygame.display.update()
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 60:
+                                enemy.take_damage(5 + (self.pow * .03))
+                    elif self.slots[i] == 'Weakening':
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 100:
+                                enemy.effects_['weakened'] = (5, .6)
+                    elif self.slots[i] == 'Critical Hit' and random.randint(0, 100) < 21:
+                        enemy.take_damage(damage * 2)
+                    elif self.slots[i] == 'Exploding' and enemy.hp <= 0:
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (enemy.rect.x, enemy.rect.y)) < 70:
+                                i.take_damage(enemy.hpmax * .6)
+                    elif self.slots[i] == 'Gravity':
+                        for i in game.enemies:
+                            for j in range(8):
+                                if self.x < i.rect.x:
+                                    i.rect.x -= 4
+                                else:
+                                    i.rect.x += 4
+                                if self.y < i.rect.y:
+                                    i.rect.y -= 4
+                                else:
+                                    i.rect.y += 4
+                            i.hitbox.update(i.rect.x, i.rect.y, i.reach)
+                    elif (self.slots[i] == 'Shockwave' or self.slots[i] == 'Swirling') and random.randint(0, 5) == 0:  # Make them the same because simplicity
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 100:
+                                enemy.take_damage(4 + (self.pow * .04))
+                    elif self.slots[i] == 'Void Strike':
+                        if enemy.effects_['void strike'][0] < 0:
+                            enemy.effects_['void strike'] = (4,1)
+                        else:
+                            if enemy.effects_['void strike'][0] >= 1:
+                                time = 4 - enemy.effects_['void strike'][0]
+                                enemy.take_damage(((time/3) * 6) * damage)
+                            else:
+                                enemy.take_damage(6 * damage)
+                            enemy.effects_['void strike'] = (-1,1)
+                    elif self.slots[i] == 'Refreshment' and enemy.hp <= 0:
+                        if player.potion_cooldown >= 3:
+                            player.potion_cooldown -= 3
+                    elif self.slots[i] == 'Busy Bee' and random.randint(1, 10) < 5:
+                        bee = dungeon_helpful.Bee(self.x, self.y, self.pow)
+                        self.bees.append(bee)
+                        game.helpfuls.append(bee)
+                        if len(self.bees) > 3:
+                            game.helpfuls.remove(self.bees.pop(0))
+                    elif self.slots[i] == 'Dynamo' and self.stacked > 0:
+                        extra = (damage * 1.5) + ((self.stacked - 1) * damage)
+                    elif self.slots[i] == 'Guarding Strike':
+                        player.effects_['guarding strike'] = (2, .5)
+                    elif self.slots[i] == 'Pain Cycle':
+                        if player._pain >= 5:
+                            player._pain = 0
+                            enemy.take_damage(5 * damage)
+                        else:
+                            player.hp *= .97
+                            player._pain += 1
+                    elif self.slots[i] == 'Unchanting' and enemy.enchants:
+                        enemy.take_damage(damage)
+
+    def roll(self, game):
+        self.check_enchants('roll', game.player, game)
     
 
 class BaseRangeWeapon:
+    enchants = ['Anima Conduit', 'Accelerate', 'Artifact Charge', 'Bonus Shot', 'Enigma Resonator', 'Fuse Shot', 'Growing', 'Infinity', 'Multishot', 'Piercing',
+                'Poison Cloud', 'Power', 'Punch', 'Radiance Shot', 'Rapid Fire', 'Ricochet', 'Supercharge', 'Unchanting', 'Wild Rage', 'Chain Reaction', 'Gravity',
+                'Tempo Theft', 'Void Strike', 'Levitation Shot', 'Overcharge', 'Shock Web', 'Burst Bowstring', 'Cooldown Shot', 'Dipping Poison', 'Dynamo', 'Roll Charge',
+                'Weakening']
+    
     def __repr__(self):
-        return f'{self.name}(cooldown = {self.cooldown}, damage={self.arrow["damage"]}, knockback={self.arrow["knockback"]}, type={self.arrow["name"]}, speed={self._speed}, enchantments=[{", ".join(self._bonus)}])'
+        return f'{self.name}(cooldown = {self.cooldown}, damage={self.arrow["damage"]}, knockback={self.arrow["knockback"]}, type={self.arrow["name"]})'
 
     def __init__(self, pow):
         self.numshoot = 1
@@ -167,19 +531,47 @@ class BaseRangeWeapon:
         self._spent = 0
         self._is_increased = False
         self.pow = pow
+        self.slots = {1: None, 2: None, 3: None}
+        self.slotlevels = {1: 0, 2: 0, 3: 0}
+        self.cools = {'accelerate': [0,0]}
+        self.randomize_enchants()
         self.update_descript()
 
+    @property
+    def slotlevel(self): return self.slotlevels
+
+    def cooldown_mul(self):
+        return 1 - self.cools['accelerate'][1]
+
+    def randomize_enchants(self):
+        self.slots[1] = random.choice(BaseRangeWeapon.enchants)
+        self.slots[2] = random.choice(BaseRangeWeapon.enchants)
+        self.slots[3] = random.choice(BaseRangeWeapon.enchants)
+
+    def get_ench(self, ench):
+        if self.slots[1] == ench: return self.slotlevel[1]
+        elif self.slots[2] == ench: return self.slotlevel[2]
+        elif self.slots[3] == ench: return self.slotlevel[3]
+        return 0
+
     def shoot(self, game, player, t):
-        arrow = t((player.rect.x, player.rect.y), pygame.mouse.get_pos(), self.arrow['damage'] + self._is_increased, self.arrow['knockback'], player, chain=(
-            'Chain Reaction' in self._bonus), chainstack=self._amount_chained, growing=('Growing' in self._bonus))
+        arrow = t((player.rect.x, player.rect.y), pygame.mouse.get_pos(), self.arrow['damage'] + self._is_increased, self.arrow['knockback'], player, chain=self.get_ench('Chain Reaction'), growing=self.get_ench('Growing'))
         game.arrows.append(arrow)
         dungeon_settings.bow_shoot.play()
-        if 'Infinity' in self._bonus and random.randint(0, 1) == 0:
+        self.check_enchants('shot', player, game, arrow=arrow)
+        if self.get_ench('Infinity') and random.randint(1, 100) < 1 + (self.get_ench('Infinity') * 16):
             game.player.arrows += 1
 
     def render(self, x, y, game):
         self.x = x
         self.y = y
+        for key, val in self.cools.items():
+            if val[0] > 0:
+                self.cools[key][0] -= time.time() - self.lasttime
+                if self.cools[key][0] <= 0:
+                    self.cools[key][1] = 0
+        self.lasttime = time.time()
+        
         self._is_increased = False
         self.draw(game)
 
@@ -197,46 +589,13 @@ class BaseRangeWeapon:
     def draw(self, game):
         pass
 
-    def enchant(self, spent, game):
-        self._spent += spent
-        if spent == 1:
-            self.apply_enchant(1, game)
-            return 0
-        elif spent == 2:
-            self.apply_enchant(2, game)
-            return 0
-        elif spent == 3:
-            self.apply_enchant(3, game)
-            return 0
-        else:
-            self.apply_enchant(4, game)
-            return spent - 4
-
-    def apply_enchant(self, level, game):
-        if level == 3:
-            enchant = random.choice(['Flame', 'Chain Reaction', 'Growing'])
-            if enchant == 'Chain Reaction':
-                self._bonus.append('Chain Reaction')
-                self.chain()
-            elif enchant == 'Growing':
-                self._bonus.append('Growing')
-            elif enchant == 'Flame':
-                self._bonus.append('Flame')
-        elif level == 4:
-            enchant = random.choice(['Infinity', 'Chain Reaction', 'Growing', 'Flame'])
-            if enchant == 'Infinity':
-                self._bonus.append('Infinity')
-            elif enchant == 'Chain Reaction':
-                self._bonus.append('Chain Reaction')
-                self.chain()
-            elif enchant == 'Growing':
-                self._bonus.append('Growing')
-            elif enchant == 'Flame':
-                self._bonus.append('Flame')
-                self.arrow['type'] = dungeon_arrows.FlamingArrow
-
-    def speed(self, amount):
-        self._speed += amount
+    def enchant(self, game):
+        index = dungeon_gui.get_enchant(self, game)
+        if game.player.level <= self.slotlevel[index]: return game.player.level
+        self._spent += self.slotlevel[index] + 1
+        self.slotlevel[index] += 1
+        self.update_descript()
+        return game.player.level - self.slotlevel[index]
 
     def chain(self):
         if self._amount_chained == 0:
@@ -251,16 +610,53 @@ class BaseRangeWeapon:
         self.descript[1] = f'Arrow damage: {self.arrow["damage"]}'
         self.descript[2] = f'Arrow knockback: {self.arrow["knockback"]}'
         self.descript[3] = f'Cooldown: {self.cooldown}'
-        self.descript[4] = f'Speed increase: {self._speed}'
+        self.descript[4] = f'Power: {self.pow}'
         if self._bonus:
             self.descript += self._bonus
+        if self.slotlevel[1] > 0:
+            self.descript.append(f'{self.slots[1]} [{self.slotlevel[1]}')
+        if self.slotlevel[2] > 0:
+            self.descript.append(f'{self.slots[2]} [{self.slotlevel[2]}')
+        if self.slotlevel[3] > 0:
+            self.descript.append(f'{self.slots[3]} [{self.slotlevel[3]}')
 
     def salvage(self, player):
-        player.emeralds += random.randint(3, 7) + self._enchant
+        player.emeralds += random.randint(13, 17)
         player.level += self._spent
+
+    def check_enchants(self, trigger, player, game, enemy=None):
+        if trigger == 'soul':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:
+                    if self.slots[i] == 'Anima Conduit':
+                        player.hp *= 1.04
+                elif self.slotlevel[i] == 2:
+                    if self.slots[i] == 'Anima Conduit':
+                        player.hp *= 1.06
+                elif self.slotlevel[i] == 3:
+                    if self.slots[i] == 'Anima Conduit':
+                        player.hp *= 1.08
+        elif trigger == 'arrowhit': pass
+        elif trigger == 'shot':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:
+                    if self.slots[i] == 'Accelerate':
+                        self.cools['accelerate'] = [1, self.cools[1] + .08]
+                elif self.slotlevel[i] == 2:
+                    if self.slots[i] == 'Accelerate':
+                        self.cools['accelerate'] = [1, self.cools[1] + .1]
+                elif self.slotlevel[i] == 3:
+                    if self.slots[i] == 'Accelerate':
+                        self.cools['accelerate'] = [1, self.cools[1] + .12]
 
     def get_power(self):
         return self.pow
+
+    def got_soul(self, player):
+        self.check_enchants('soul', player, player._game)
+
+    def arrow_hit(self, game, enemy):
+        self.check_enchants('arrowhit', game.player, player, enemy)
     
 
 class Consumable:
@@ -343,9 +739,13 @@ class Artifact:
             game.play(self._draw)
 
 
-class BaseArmor:
+class BaseArmor:  # armor enchants are way more complex as they have to do more with 'per-tick' things
+    enchants = ['Acrobat', 'Bag of Souls', 'Burning', 'Cool Down', 'Cowardice', 'Deflect', 'Electrified', 'Explorer', 'Fire Trail', 'Food Reserves',
+                'Frenzied', 'Health Synergy', 'Lucky Explorer', 'Potion Barrier', 'Recycler', 'Snowball', 'Soul Speed', 'Speed Synergy', 'Suprise Gift',
+                'Swiftfooted', 'Thorns', 'Chilling', 'Final Shout', 'Gravity Pulse', 'Protection', 'Reckless', 'Luck of the Sea', 'Rush', 'Tumblebee']
+    # Currently removed: Final Shout, Life Boost, Focus-es, Beast enchants, Shadow Surge, Shadow Blast (no shadow form, helpful boosts, or death functionality yet)
     def __repr__(self):
-        return f'{self.name}(protection={self.protect}, speed={self._speed}, hp={self.hp}, enchantments=[{", ".join(self._bonus)}]'
+        return f'{self.name}(protection={self.protect}, hp={self.hp}]'
 
     def __init__(self, pow):
         self.name = 'Armor'
@@ -360,14 +760,56 @@ class BaseArmor:
         self._spent = 0
         self._enchant = 0
         self._kills = 0
+        self._move = 1
         self._didboost = False
         self.arrows = 0
         self.pow = pow
+        self.slots = {1: None, 2: None, 3: None}
+        self.slotlevel = {1: 0, 2: 0, 3: 0}
+        self.cools = {'final shout': 0, 'burning': 0, 'snowball': 0, 'chilling': 0, 'gravity pulse': 0}
+        self.blocks_moved = 0
+        self._arrow = 0
+        self.prot_dict = {0: 1, 1: .94, 2: .89, 3: .85}
+        self.dmg_mul = 0
+        self.bees = []
+        self._soul = 0
+        self._art = 0
+        self.arrow_boost = 0
+        self.attack_speed = 0
+        self.life_aura = 0
+        self.lasttime = time.time()
+        self.randomize_enchants()
+
+    def randomize_enchants(self):
+        self.slots[1] = random.choice(BaseArmor.enchants)
+        self.slots[2] = random.choice(BaseArmor.enchants)
+        self.slots[3] = random.choice(BaseArmor.enchants)
+
+    def has_ench(self, ench):
+        return any((self.slots[1] == ench, self.slots[2] == ench, self.slots[3] == ench))
+
+    def get_ench(self, ench):
+        if self.slots[1] == ench: return self.slotlevel[1]
+        elif self.slots[2] == ench: return self.slotlevel[2]
+        elif self.slots[3] == ench: return self.slotlevel[3]
+        return 0
+
+    def get_soul_max_mul(self):
+        return 1 + (self.get_ench('Bag of Souls') * .5)
+
+    def damage_mul(self):
+        if self.get_ench('Reckless'):
+            return 1 + self.dmg_mul + (.3 + .2 * self.get_ench('Reckless'))
+        return 1 + self.dmg_mul
 
     def render(self, x, y, game):
         self.x = x
         self.y = y
-        if game.player.hp < 10 and 'Final Shout' in self._bonus:
+        for key, val in self.cools.items():
+            if val > 0:
+                self.cools[key] -= time.time() - self.lasttime
+        self.lasttime = time.time()
+        if game.player.hp < (game.player.hp / 4) and self.has_ench('Final Shout') and self.cools['final shout'] <= 0:
             # self._bonus.remove('Final Shout')
             for artifact in [game.player.a1, game.player.a2, game.player.a3]:
                 if artifact is None:
@@ -376,12 +818,51 @@ class BaseArmor:
                 artifact.cooldown = 0
                 artifact.use(game)
                 artifact.cooldown = temp
-        if 'Frenzied' in self._bonus and game.player.hp < 20 and not self._didboost:
+            self.cools['final shout'] = 14 - (2 * self.get_ench('Final Shout'))
+        if self.has_ench('Frenzied') and game.player.hp < (game.player.hpmax / 2) and not self._didboost:
             self._didboost = True
-            game.player.attack_speed += 1
-        elif 'Frenzied' in self._bonus and self._didboost and game.player.hp >= game.player.hpmax / 2:
+            game.player.attack_speed += .1 * self.get_ench('Frenzied')
+        elif self.has_ench('Frenzied') and self._didboost and game.player.hp >= game.player.hpmax / 2:
             self._didboost = False
-            game.player.attack_speed -= 1
+            game.player.attack_speed -= .1 * self.get_ench('Frenzied')
+        if self.has_ench('Burning') and self.cools['burning'] <= 0:
+            self.cools['burning'] = .5
+            for i in game.enemies:
+                try:
+                    if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < game.player.weapon.reach:
+                        i.take_damage(self.get_ench('burning') + (self.pow * (self.get_ench('burning') / 100)))
+                except AttributeError:  # using their fists
+                    if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 30:
+                        i.take_damage(self.get_ench('burning') + (self.pow * (self.get_ench('burning') / 100)))
+        if self.has_ench('Snowball') and self.cools['snowball'] <= 0:
+            self.cools['snowball'] = 7 - (2 * self.get_ench('Snowball'))
+            c = None
+            l = float('inf')
+            for i in game.enemies:
+                if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < l:
+                    l = math.dist((i.rect.x, i.rect.y), (self.x, self.y))
+                    c = i
+            if c: c.give_unmoving(4, 'stunned')
+        if self.has_ench('Chilling') and self.cools['chilling'] <= 0:
+            self.cools['chilling'] = 2
+            for i in game.enemies:
+                if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 200:
+                    i.effects_['freezing'] = (1, 1 - (.2 * self.get_ench('Chilling')))
+                    i.effects_['weakened'] = (1, 1 - (.2 * self.get_ench('Chilling')))
+        if self.has_ench('Gravity Pulse') and self.cools['gravity pulse'] <= 0:
+            self.cools['gravity pulse'] = 5
+            for i in game.enemies:
+                for j in range(5 * self.get_ench('Gravity Pulse')):
+                    if self.x < i.rect.x:
+                        i.rect.x -= 3
+                    else:
+                        i.rect.x += 3
+                    if self.y < i.rect.y:
+                        i.rect.y -= 3
+                    else:
+                        i.rect.y += 3
+
+                i.hitbox.update(i.rect.x, i.rect.y, i.reach)
         self.draw(game)
 
     def draw(self, game):
@@ -400,62 +881,269 @@ class BaseArmor:
             game.screen.blit(text2[text], (x, y - ((text + 2) * 20)))
 
     def update_descript(self):
-        if type(self.hp) == float:
-            self.hp = random.choice([int(self.hp), int(self.hp) + 1])
-        self.descript = ['', '']
-        self.descript[0] = f'Armor health: {self.hp}'
-        self.descript[1] = f'Speed bonus: {self._speed}'
+        self.descript = [f'Armor health: {self.hp}']
         if self._bonus:
             self.descript += self._bonus
+        if self.slotlevel[1] > 0:
+            self.descript.append(f'{self.slots[1]} [{self.slotlevel[1]}')
+        if self.slotlevel[2] > 0:
+            self.descript.append(f'{self.slots[2]} [{self.slotlevel[2]}')
+        if self.slotlevel[3] > 0:
+            self.descript.append(f'{self.slots[3]} [{self.slotlevel[3]}')
 
     def salvage(self, player):
         player.emeralds += random.randint(3, 7) + self._enchant
         player.level += self._spent
 
     def enchant(self, spent, game):
-        self._spent += spent
-        if spent == 1:
-            self.apply_enchant(1, game)
-            return 0
-        elif spent == 2:
-            self.apply_enchant(2, game)
-            return 0
-        elif spent == 3:
-            self.apply_enchant(3, game)
-            return 0
-        else:
-            self.apply_enchant(4, game)
-            return spent - 4
-
-    def apply_enchant(self, level, game):
-        if level == 2:
-            enchant = random.choice(['Frenzied'])
-            if enchant == 'Frenzied':
-                self._bonus.append('Frenzied')
-        elif level == 3:
-            enchant = random.choice(['Final Shout', 'Frenzied'])
-            if enchant == 'Final Shout':
-                self._bonus.append('Final Shout')
-            elif enchant == 'Frenzied':
-                self._bonus.append('Frenzied')
-        elif level == 4:
-            enchant = random.choice(['Final Shout', 'Frenzied'])
-            if enchant == 'Final Shout':
-                self._bonus.append('Final Shout')
-            elif enchant == 'Frenzied':
-                self._bonus.append('Frenzied')
-
-    def speed(self, amount):
-        self._speed += amount
+        index = dungeon_gui.get_enchant(self, game)
+        if game.player.level <= self.slotlevel[index]: return game.player.level
+        self._spent += self.slotlevel[index] + 1
+        self.slotlevel[index] += 1
+        self.update_descript()
+        return game.player.level - self.slotlevel[index]
 
     def _protect(self, damage):
-        return self.protect * damage
+        if random.randint(1, 10) < self.get_ench('Deflect') * 2 + 1:
+            return 0
+        return self.protect * damage * self.prot_dict[self.get_ench('Protection')]
 
     def get_power(self):
         return self.pow
 
     def do_special(self, player, enemy, game):
         pass
+
+    def use_potion(self, game):
+        self.check_enchants('potion', game.player, game)
+
+    def equip(self, game):
+        pass
+
+    def remove(self, game):
+        pass
+
+    @property
+    def slotslevel(self): return self.slotlevel  # Because I keep writing slotslevel
+
+    def check_enchants(self, trigger, player, game=None, art=None, enemy=None):
+        if trigger == 'potion':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:  # level 1 enchants
+                    if self.slots[i] == 'Food Reserves':
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice([i for i in cloot if not issubclass(i, Potion) and type(i) != TNT])))
+                    elif self.slots[i] == 'Potion Barrier':
+                        player.effects_['potion barrier'] = (5, .1)
+                    elif self.slots[i] == 'Suprise Gift' and random.randint(0, 1) == 1:
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice(cloot)))
+                elif self.slotlevel[i] == 2:
+                    if self.slots[i] == 'Food Reserves':
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice([i for i in cloot if not issubclass(i, Potion) and type(i) != TNT])))
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice([i for i in cloot if not issubclass(i, Potion) and type(i) != TNT])))
+                    elif self.slots[i] == 'Potion Barrier':
+                        player.effects_['potion barrier'] = (7, .1)
+                    elif self.slots[i] == 'Suprise Gift':
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice(cloot)))
+                elif self.slotlevel[i] == 3:
+                    if self.slots[i] == 'Food Reserves':
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice([i for i in cloot if not issubclass(i, Potion) and type(i) != TNT])))
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice([i for i in cloot if not issubclass(i, Potion) and type(i) != TNT])))
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice([i for i in cloot if not issubclass(i, Potion) and type(i) != TNT])))
+                    elif self.slots[i] == 'Potion Barrier':
+                        player.effects_['potion barrier'] = (9, .1)
+                    elif self.slots[i] == 'Suprise Gift':
+                        game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice(cloot)))
+                        if random.randint(0, 1) == 1:
+                            game.chests.append(dungeon_chests.Hack(self.x + random.randint(-30, 30), self.y + random.randint(-30, 30), random.choice(cloot)))
+        elif trigger == 'roll':
+            for i in range(1, 4):
+                if self.slotslevel[i] == 1:
+                    if self.slots[i] == 'Acrobat':
+                        player.roll_cooldown *= .85
+                    elif self.slots[i] == 'Electrified':
+                        enemies = []
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 80:
+                                enemies.append(i)
+                        for i in range(30):
+                            game.play()
+                            for j in enemies:
+                                pygame.draw.line(game.screen, pygame.Color('yellow'), (self.x, self.y), (j.rect.x, j.rect.y), 2)
+                        for j in enemies:
+                            j.take_damage(2 + (self.pow * .02))
+                    elif self.slots[i] == 'Fire Trail':
+                        game.other.append(dungeon_misc.HelpFire(self.x, self.y, {'dmg': 1 + (self.pow * .01)}))
+                    elif self.slots[i] == 'Swiftfooted':
+                        player.effects_['swiftfooted'] = (3, .3)
+                    elif self.slots[i] == 'Tumblebee' and random.randint(1, 100) < 34:
+                        self.bees = [i for i in self.bees if i.hp > 0]
+                        if len(self.bees) < 3:
+                            game.helpfuls.append(dungeon_helpful.Bee(self.x, self.y, self.pow))
+                            self.bees.append(game.helpfuls[-1])
+                elif self.slotslevel[i] == 2:
+                    if self.slots[i] == 'Acrobat':
+                        player.roll_cooldown *= .7
+                    elif self.slots[i] == 'Electrified':
+                        enemies = []
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 80:
+                                enemies.append(i)
+                        for i in range(30):
+                            game.play()
+                            for j in enemies:
+                                pygame.draw.line(game.screen, pygame.Color('yellow'), (self.x, self.y), (j.rect.x, j.rect.y), 2)
+                        for j in enemies:
+                            j.take_damage(4 + (self.pow * .02))
+                    elif self.slots[i] == 'Fire Trail':
+                        game.other.append(dungeon_misc.HelpFire(self.x, self.y, {'dmg': 2 + (self.pow * .02)}))
+                    elif self.slots[i] == 'Swiftfooted':
+                        player.effects_['swiftfooted'] = (3, .4)
+                    elif self.slots[i] == 'Tumblebee' and random.randint(1, 100) < 68:
+                        self.bees = [i for i in self.bees if i.hp > 0]
+                        if len(self.bees) < 3:
+                            game.helpfuls.append(dungeon_helpful.Bee(self.x, self.y, self.pow))
+                            self.bees.append(game.helpfuls[-1])
+                elif self.slotslevel[i] == 3:
+                    if self.slots[i] == 'Acrobat':
+                        player.roll_cooldown *= .55
+                    elif self.slots[i] == 'Electrified':
+                        enemies = []
+                        for i in game.enemies:
+                            if math.dist((i.rect.x, i.rect.y), (self.x, self.y)) < 80:
+                                enemies.append(i)
+                        for i in range(30):
+                            game.play()
+                            for j in enemies:
+                                pygame.draw.line(game.screen, pygame.Color('yellow'), (self.x, self.y), (j.rect.x, j.rect.y), 2)
+                        for j in enemies:
+                            j.take_damage(6 + (self.pow * .02))
+                    elif self.slots[i] == 'Fire Trail':
+                        game.other.append(dungeon_misc.HelpFire(self.x, self.y, {'dmg': 3 + (self.pow * .03)}))
+                    elif self.slots[i] == 'Swiftfooted':
+                        player.effects_['swiftfooted'] = (3, .5)
+                    elif self.slots[i] == 'Tumblebee':
+                        self.bees = [i for i in self.bees if i.hp > 0]
+                        if len(self.bees) < 3:
+                            game.helpfuls.append(dungeon_helpful.Bee(self.x, self.y, self.pow))
+                            self.bees.append(game.helpfuls[-1])
+                            if random.randint(1, 100) == 1 and len(self.bees) < 3:
+                                game.helpfuls.append(dungeon_helpful.Bee(self.x, self.y, self.pow))
+                                self.bees.append(game.helpfuls[-1])
+        elif trigger == 'artifact':
+            for i in range(1, 4):
+                if self.slotslevel[i] == 1:
+                    if self.slots[i] == 'Cool Down':
+                        art.cooldown *= .9
+                    elif self.slots[i] == 'Health Synergy':
+                        player.hp *= 1.03
+                    elif self.slots[i] == 'Speed Synergy':
+                        player.effects['speed'] += 1
+                elif self.slotslevel[i] == 2:
+                    if self.slots[i] == 'Cool Down':
+                        art.cooldown *= .81
+                    elif self.slots[i] == 'Health Synergy':
+                        player.hp *= 1.04
+                    elif self.slots[i] == 'Speed Synergy':
+                        player.effects['speed'] += 2
+                elif self.slotslevel[i] == 3:
+                    if self.slots[i] == 'Cool Down':
+                        art.cooldown *= .73
+                    elif self.slots[i] == 'Health Synergy':
+                        player.hp *= 1.05
+                    elif self.slots[i] == 'Speed Synergy':
+                        player.effects['speed'] += 3
+        elif trigger == 'move':
+            for i in range(1, 4):
+                if self.slotslevel[i] == 1:
+                    if self.slots[i] == 'Explorer':
+                        self.blocks_moved += 1
+                        if self.blocks_moved > 100:
+                            self.blocks_moved = 0
+                            player.hp *= 1.003
+                    elif self.slots[i] == 'Lucky Explorer' and random.randint(1, 20) == 1:
+                        game.chests.append(dungeon_chests.Hack2(self.x, self.y, 1))
+                elif self.slotslevel[i] == 2:
+                    if self.slots[i] == 'Explorer':
+                        self.blocks_moved += 1
+                        if self.blocks_moved > 100:
+                            self.blocks_moved = 0
+                            player.hp *= 1.007
+                    elif self.slots[i] == 'Lucky Explorer' and random.randint(1, 20) == 1:
+                        game.chests.append(dungeon_chests.Hack2(self.x, self.y, 3))
+                elif self.slotslevel[i] == 3:
+                    if self.slots[i] == 'Explorer':
+                        self.blocks_moved += 1
+                        if self.blocks_moved > 100:
+                            self.blocks_moved = 0
+                            player.hp *= 1.01
+                    elif self.slots[i] == 'Lucky Explorer' and random.randint(1, 20) == 1:
+                        game.chests.append(dungeon_chests.Hack2(self.x, self.y, 5))
+        elif trigger == 'arrow':
+            for i in range(1, 4):
+                if self.slotslevel[i] == 1:
+                    if self.slots[i] == 'Recycler':
+                        self._arrow += 1
+                        if self._arrow >= 30:
+                            self._arrow = 0
+                            player.arrows += 5
+                if self.slotslevel[i] == 2:
+                    if self.slots[i] == 'Recycler':
+                        self._arrow += 1
+                        if self._arrow >= 20:
+                            self._arrow = 0
+                            player.arrows += 5
+                if self.slotslevel[i] == 3:
+                    if self.slots[i] == 'Recycler':
+                        self._arrow += 1
+                        if self._arrow >= 10:
+                            self._arrow = 0
+                            player.arrows += 5
+        elif trigger == 'soul':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:
+                    if self.slots[i] == 'Soul Speed':
+                        player.effects_['soul speed'] = (2, player.effects_['soul speed'][1] + 1)
+                if self.slotlevel[i] == 2:
+                    if self.slots[i] == 'Soul Speed':
+                        player.effects_['soul speed'] = (3, player.effects_['soul speed'][1] + 1)
+                if self.slotlevel[i] == 3:
+                    if self.slots[i] == 'Soul Speed':
+                        player.effects_['soul speed'] = (4, player.effects_['soul speed'][1] + 1)
+        elif trigger == 'hit':
+            for i in range(1, 4):
+                if self.slotlevel[i] == 1:
+                    if self.slots[i] == 'Thorns':
+                        enemy.take_damage(player.saved_damage)
+                    elif self.slots[i] == 'Rush':
+                        player.effects_['rush'] = (1, .3)
+                if self.slotlevel[i] == 2:
+                    if self.slots[i] == 'Thorns':
+                        enemy.take_damage(player.saved_damage * 1.5)
+                    elif self.slots[i] == 'Rush':
+                        player.effects_['rush'] = (1, .6)
+                if self.slotlevel[i] == 3:
+                    if self.slots[i] == 'Thorns':
+                        enemy.take_damage(player.saved_damage * 2)
+                    elif self.slots[i] == 'Rush':
+                        player.effects_['rush'] = (1, .9)
+
+    def move(self, game):
+        self.check_enchants('move', game.player, game)
+
+    def roll(self, game):
+        self.check_enchants('roll', game.player, game)
+
+    def act_art(self, game, art):
+        self.check_enchants('artifact', game.player, game, art)
+
+    def arrow_hit(self, game):
+        self.check_enchants('arrow', game.player, game)
+
+    def got_soul(self, player):
+        self.check_enchants('soul', player)
+
+    def got_hit(self, player, enemy, game):
+        self.check_enchants('hit', player, game, enemy=enemy)
 
 
 class Sword(BaseMeleeWeapon):
@@ -500,6 +1188,19 @@ class Mallet(BaseMeleeWeapon):
                          (self.x, self.y), (self.x + 15, self.y - 15), 3)
         pygame.draw.polygon(game.screen, self.blockcolor, [(
             self.x + 10, self.y - 20), (self.x + 15, self.y - 25), (self.x + 20, self.y - 15), (self.x + 15, self.y - 10)])
+
+
+class Mace(BaseMeleeWeapon):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.name = 'Mace'
+        self.handlecolor = pygame.Color('grey')
+        self.ballcolor = pygame.Color('grey')
+
+    def draw(self, game):
+        pygame.draw.line(game.screen, self.handlecolor,
+                         (self.x, self.y), (self.x + 15, self.y - 15), 3)
+        pygame.draw.circle(game.screen, self.ballcolor, (self.x + 17, self.y - 17), 4)
 
 
 class Fist(BaseMeleeWeapon):
@@ -578,7 +1279,6 @@ class WoodSword(Sword):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Wood Sword'
-        self.knockback = 15
         self.cooldown = .9
         self.reach = 20
         self.damage = pow
@@ -589,7 +1289,6 @@ class StoneSword(Sword):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Stone Sword'
-        self.knockback = 20
         self.cooldown = .8
         self.reach = 25
         self.damage = pow * 1.05
@@ -601,7 +1300,6 @@ class IronSword(Sword):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Iron Sword'
-        self.knockback = 20
         self.cooldown = .7
         self.reach = 25
         self.damage = pow * 1.08
@@ -613,7 +1311,6 @@ class GoldenSword(Sword):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Golden Sword'
-        self.knockback = 13
         self.cooldown = .8
         self.reach = 20
         self.damage = pow
@@ -625,7 +1322,6 @@ class DiamondSword(Sword):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Diamond Sword'
-        self.knockback = 24
         self.cooldown = .63
         self.reach = 30
         self.damage = 2 + (pow * 1.1)
@@ -638,7 +1334,6 @@ class SpeedySword(Sword):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Speedy Sword'
-        self.knockback = 20
         self.cooldown = .4
         self.reach = 20
         self.damage = pow + 8
@@ -647,11 +1342,54 @@ class SpeedySword(Sword):
         self.update_descript()
 
 
+class Claymore(Sword):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.name = 'Claymore'
+        self.cooldown = 1.1
+        self.reach = 30
+        self.damage = 5 + (pow * 0.4)
+        self.bladecolor = pygame.Color('white')
+        self.handlecolor = pygame.Color('grey')
+        self.update_descript()
+
+
+class Heartstealer(Sword):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.name = 'Heartstealer'
+        self.cooldown = 1.1
+        self.reach = 30
+        self.damage = 5 + (pow * 0.4)
+        self.bladecolor = pygame.Color('red')
+        self.handlecolor = pygame.Color('grey')
+        self._bonus.append('Steals health on hit')
+        self.update_descript()
+
+
+class Mace_(Mace):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.cooldown = .9
+        self.reach = 20
+        self.damage = 6 + (pow * .1)
+        self.update_descript()
+
+
+class SunsGrace(Mace):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.cooldown = .9
+        self.reach = 20
+        self.damage = 6 + (pow * .1)
+        self._bonus.append('Heals nearby allies')
+        self.update_descript()
+
+
 class WoodAxe(Axe):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Wood Axe'
-        self.knockback = 30
         self.cooldown = 1.2
         self.reach = 30
         self.damage = pow + 2
@@ -662,7 +1400,6 @@ class IronAxe(Axe):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Iron Axe'
-        self.knockback = 35
         self.cooldown = 1.13
         self.reach = 30
         self.damage = 3 + (pow * 1.05)
@@ -674,7 +1411,6 @@ class GoldenAxe(Axe):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Golden Axe'
-        self.knockback = 20
         self.cooldown = 1.18
         self.reach = 25
         self.damage = 2 + (pow * .1)
@@ -686,7 +1422,6 @@ class WeightedAxe(Axe):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Weighted Axe'
-        self.knockback = 50
         self.cooldown = 1.3
         self.reach = 50
         self.damage = 15 + (pow * .02)
@@ -699,18 +1434,13 @@ class CursedAxe(Axe):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Cursed Axe'
-        self.knockback = 40
         self.cooldown = 1.22
         self.reach = 30
         self.damage = pow * 1.03
         self.bladecolor = pygame.Color('grey')
         self.handlecolor = pygame.Color('purple')
+        self._bonus.append('Extra damage to undead')
         self.update_descript()
-
-    def attack(self, enemy, player, damage, knockback):
-        super().attack(enemy, player, damage, knockback)
-        if enemy.effects['poison'] < 5:
-            enemy.effects['poison'] = 5
 
 
 class IronMallet(Mallet):
@@ -718,7 +1448,7 @@ class IronMallet(Mallet):
         super().__init__(pow)
         self.name = 'Iron Mallet'
         self.blockcolor = pygame.Color('grey')
-        self.knockback = 50
+        self.knockback = 10
         self.cooldown = 1
         self.reach = 30
         self.damage = pow + 4
@@ -730,10 +1460,11 @@ class BigMallet(Mallet):
         super().__init__(pow)
         self.name = 'Big Mallet'
         self.blockcolor = pygame.Color('light blue')
-        self.knockback = 150
+        self.knockback = 50
         self.cooldown = 0.9
         self.reach = 60
         self.damage = 1 + (pow * .3)
+        self._bonus.append('Great pushback')
         self.update_descript()
 
 
@@ -742,7 +1473,7 @@ class HerosMallet(Mallet):
         super().__init__(pow)
         self.name = 'Hero\'s Mallet'
         self.blockcolor = pygame.Color('dark blue')
-        self.knockback = 70
+        self.knockback = 15
         self.cooldown = 1.06
         self.reach = 40
         self.damage = pow + 10
@@ -754,7 +1485,7 @@ class XPGatherer(Mallet):
         super().__init__(pow)
         self.name = 'XP Gatherer'
         self.blockcolor = pygame.Color('green')
-        self.knockback = 20
+        self.knockback = 10
         self.cooldown = 1
         self.reach = 20
         self.damage = 15 + (pow * .1)
@@ -775,17 +1506,17 @@ class GravityHammer(Mallet):
         self.reach = 90
         self.damage = 3 + (pow * .5)
         self._speed = -1
+        self._bonus.extend(['Great Pushback', 'Pulls in mobs'])
         self.update_descript()
 
 
 class KillFist(Fist):
     def __init__(self, pow):
         super().__init__(pow)
-        self.name = 'Kill Fist'
+        self.name = 'Maulers'
         self.fistcolor = pygame.Color('black')
-        self.knockback = 2
-        self.cooldown = .06
-        self.reach = 10
+        self.cooldown = .1
+        self.reach = 20
         self.damage = 1 + (pow * .07)
         self.update_descript()
 
@@ -795,9 +1526,8 @@ class SoulFists(Fist):
         super().__init__(pow)
         self.name = 'Soul Fists'
         self.fistcolor = pygame.Color('yellow')
-        self.knockback = 3
-        self.cooldown = .06
-        self.reach = 15
+        self.cooldown = .1
+        self.reach = 20
         self.damage = 2 + (pow * .075)
         self._kills = 2
         self.update_descript()
@@ -813,18 +1543,18 @@ class GaleKnife(Knife):  # why is this called gale knife? i have no idea
         super().__init__(pow)
         self.name = 'Resolute Tempest Knife'
         self.bladecolor = pygame.Color('light blue')
-        self.knockback = 20
         self.cooldown = 0.9
         self.reach = 30
         self.damage = 3 + (pow * .05)
+        self._bonus.append('Speed burst on kill')
         self.update_descript()
 
     def attack(self, enemy, player, damage, knockback):
         super().attack(enemy, player, damage, knockback)
 
         if enemy.hp <= 0:
-            if player.effects['speed'] < 5:
-                player.effects['speed'] = 5
+            if player.effects['speed'] < 2:
+                player.effects['speed'] = 2
 
 
 class TempestKnife(Knife):
@@ -832,7 +1562,6 @@ class TempestKnife(Knife):
         super().__init__(pow)
         self.name = 'Tempest Knife'
         self.bladecolor = pygame.Color('light blue')
-        self.knockback = 20
         self.cooldown = 0.9
         self.reach = 30
         self.damage = 3 + (pow * .05)
@@ -844,15 +1573,15 @@ class FangsOfFrost(Knife):
         super().__init__(pow)
         self.name = 'Fangs of Frost'
         self.bladecolor = pygame.Color('light blue')
-        self.knockback = 10
-        self.cooldown = 0.2
+        self.cooldown = 0.26
         self.reach = 15
         self.damage = 0.5 + (pow * .05)
+        self._bonus.append('Freezes mobs')
         self.update_descript()
 
     def attack(self, enemy, player, damage, knockback):
         super().attack(enemy, player, damage, knockback)
-        enemy.give_unmoving(3)
+        enemy.give_unmoving(1)
 
 
 class DarkKatana(Knife):
@@ -861,7 +1590,6 @@ class DarkKatana(Knife):
         self.name = 'Dark Katana'
         self.bladecolor = pygame.Color('purple')
         self.handlecolor = pygame.Color('black')
-        self.knockback = 10
         self.cooldown = 0.8
         self.reach = 20
         self.damage = 10 + (pow * .03)
@@ -875,11 +1603,23 @@ class EternalKnife(Knife):
         self.name = 'Eternal Knife'
         self.bladecolor = pygame.Color('purple')
         self.handlecolor = pygame.Color('black')
-        self.knockback = 5
-        self.cooldown = .07
+        self.cooldown = .7
         self.reach = 20
         self.damage = pow + 1
         self._kills = 2
+        self.update_descript()
+
+
+class Backstabber(Knife):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.name = 'Backstabber'
+        self.bladecolor = pygame.Color('lavender')
+        self.handlecolor = pygame.Color('brown')
+        self.cooldown = .2
+        self.reach = 20
+        self.damage = pow + 2
+        self._bonus.append('Extra damage to unsuspecting enemies')
         self.update_descript()
 
 
@@ -889,16 +1629,11 @@ class JailorScythe(Scythe):
         self.name = 'Jailor\'s Scythe'
         self.bladecolor = pygame.Color('white')
         self.handlecolor = pygame.Color('purple')
-        self.knockback = 10
         self.cooldown = 0.8
-        self.reach = 70
+        self.reach = 60
         self.damage = 6
+        self._bonus = ['Chains mobs']
         self.update_descript()
-
-    def attack(self, enemy, player, damage, knockback):
-        super().attack(enemy, player, damage, knockback)
-        if random.randint(0, 10) == 0 and enemy.speed > 0:
-            enemy.give_unmoving(3, 'chains')
 
 
 class GraveBane(Scythe):
@@ -907,10 +1642,10 @@ class GraveBane(Scythe):
         self.name = 'Grave Bane'
         self.bladecolor = pygame.Color('yellow')
         self.handlecolor = pygame.Color('yellow')
-        self.knockback = 10
         self.cooldown = 0.76
-        self.reach = 65
+        self.reach = 100
         self.damage = 10 + (pow * .3)
+        self._bonus = ['Extra damage to undead', 'Longer reach']
         self.update_descript()
 
 
@@ -921,15 +1656,6 @@ class PurpleStorm(Bow):
         self.bowcolor = pygame.Color('purple')
         self.cooldown = .06
         self.arrow['damage'] = pow
-        self.update_descript()
-
-
-class InfinityBow(Bow):
-    def __init__(self, pow):
-        super().__init__(pow)
-        self.name = 'Infinity Bow'
-        self.bowcolor = pygame.Color('black')
-        self._bonus.append('Infinity')
         self.update_descript()
 
 
@@ -1016,16 +1742,6 @@ class ExplodingCrossbow(Crossbow):
         self.cooldown = .95
         self.arrow['type'] = dungeon_arrows.ExplodingArrow
         self.arrow['name'] = 'Exploding Arrow'
-        self.update_descript()
-
-
-class ChainCrossbow(Crossbow):
-    def __init__(self, pow):
-        super().__init__(pow)
-        self.name = 'Chain Crossbow'
-        self.bowcolor = pygame.Color('gray')
-        self.cooldown = .7
-        self._bonus.append('Chain Reaction')
         self.update_descript()
 
 
@@ -1221,33 +1937,24 @@ class ShadowBrew(Potion):
         self.effect2 = 'strength'
 
 
-class LeatherArmor(BaseArmor):
-    def __init__(self, pow):
-        super().__init__(pow)
-        self.name = 'Leather Armor'
-        self.hp = pow
-        self.color = pygame.Color('brown')
-        self.update_descript()
-
-
-class ChainArmor(BaseArmor):
-    def __init__(self, pow):
-        super().__init__(pow)
-        self.name = 'Chain Armor'
-        self.hp = pow + 2
-        self.color = pygame.Color('light grey')
-        self.update_descript()
-
-
 class ReinforcedMail(BaseArmor):
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Reinforced Mail'
         self.hp = pow * 1.13
         self.color = pygame.Color('grey')
-        self._speed = -1
         self.protect = .65
+        self._bonus = ['35% Damage Reduction', '30% Chance to negate hits', '+100% Longer roll cooldown']
         self.update_descript()
+
+    def roll(self, game):
+        super().roll(game)
+        game.player.roll_cooldown *= 2
+
+    def _protect(self, damage):
+        if random.randint(1, 10) < 4:
+            return 0
+        return super()._protect(damage)
 
 
 class HunterArmor(BaseArmor):
@@ -1256,6 +1963,8 @@ class HunterArmor(BaseArmor):
         self.name = 'Hunter\'s Armor'
         self.hp = pow * .9
         self.arrows = 10
+        self._bonus = ['+10 Arrows per bundle', '+30% Arrow damage']
+        self.arrow_boost = .3
         self.color = pygame.Color('tan')
         self.update_descript()
 
@@ -1266,12 +1975,12 @@ class HeroArmor(BaseArmor):
         self.name = 'Hero\'s Armor'
         self.hp = pow
         self.color = pygame.Color('yellow')
+        self._bonus = ['40% Faster Potion cooldown', 'Health potions heal nearby allies', '35% Damage reduction', 'Mobs target you more']
         self.update_descript()
 
-    def render(self, x, y, game):
-        super().render(x, y, game)
-        if game.player.effects['regeneration'] < 3:
-            game.player.effects['regeneration'] = 3
+    def use_potion(self, game):
+        super().use_potion(game)
+        game.player.potion_cooldown *= .6
 
 
 class SoulRobe(BaseArmor):
@@ -1280,7 +1989,9 @@ class SoulRobe(BaseArmor):
         self.name = 'Soul Robe'
         self.hp = max(pow, pow - 5)
         self.color = pygame.Color('dark grey')
-        self._kills = 1
+        self._soul = .5
+        self._art = .5
+        self._bonus = ['+50% Soul Gathering', '+50% Artifact damage']
         self.update_descript()
 
 
@@ -1290,22 +2001,91 @@ class SplendidRobe(BaseArmor):
         self.name = 'Splendid Robe'
         self.hp = pow * .94
         self.color = pygame.Color('purple')
+        self._bonus = ['+30% Melee Damage', '+50% Artifact damage', '-40% Artifact cooldown']
+        self._art = .5
+        self.dmg_mul = .3
         self.update_descript()
 
-    def render(self, x, y, game):
-        super().render(x, y, game)
-        if game.player.effects['strength'] < 3:
-            game.player.effects['strength'] = 3
+    def act_art(self, game, art):
+        super().act_art(game, art)
+        art.cooldown *= .6
 
 
 class MysteryArmor(BaseArmor):
+    choices = ['+10 Arrows per bundle', 'Health potions heal nearby allies', '35% damage reduction', '+25% melee attack speed', '+50% Artifact damage', '+50% Souls gathered',
+               '6% Lifesteal Aura', '-40% Potion cooldown', '+30% Melee damage', '+20% Weapon damage boost aura', '+50% Faster roll', '+15% Movespeed aura', 'Gives the player a pet bat',
+               '30% Chance to negate hits', '-40% Artifact cooldown', '+30% Ranged damage']
+    others = ['Mobs target you more', '-10% Movement speed', '100% Longer roll cooldown']
     def __init__(self, pow):
         super().__init__(pow)
         self.name = 'Mystery Armor'
         self.hp = pow * round(random.uniform(.93, 1.07), 2)
         self.color = pygame.Color('light grey')
         # self.randomize_modifiers()  # coming soon
+        choice1 = random.choice(MysteryArmor.choices)
+        choice2 = random.choice(MysteryArmor.choices)
+        self.parse(choice1)
+        self.parse(choice2)
+        self._bonus = [choice1, choice2]
+        if random.randint(1, 15) == 1:
+            choice3 = random.choice(MysteryArmor.others)
+            if choice3 == '-10% Movement speed':
+                self._move -= .1
+            self._bonus.append(choice3)
+        self._bat = None
         self.update_descript()
+
+    def parse(self, c):
+        if c == '+10 Arrows per bundle':
+            self.arrows = 10
+        elif c == '35% damage reduction':
+            self.protect = .65
+        elif c == '+25% melee attack speed':
+            self.attack_speed = .25
+        elif c == '+50% Artifact damage':
+            self._art = .5
+        elif c == '+50% Souls gathered':
+            self._soul = .5
+        elif c == '6% Lifesteal aura':
+            self.life_aura = .06
+        elif c == '+30% Melee Damage':
+            self.dmg_mul += .3
+        elif c == '+20% Weapon damage boost aura':
+            self.dmg_mul += .2
+        elif c == '+30% Ranged damage':
+            self.arrow_boost = .3
+        elif c == '+15% Movespeed aura':
+            self._move += .15
+
+    def _protect(self, damage):
+        if random.randint(1, 10) < self.get_ench('Deflect') * 2 + 1:
+            return 0
+        if '30% Chance to negate hits' in self._bonus and random.randint(1, 10) < 4:
+            return 0
+        return damage * self.protect * self.prot_dict[self.get_ench('Protection')]
+
+    def roll(self, game):
+        super().roll(game)
+        if '+50% Faster roll' in self._bonus: game.player.roll_cooldown *= .5
+        if '100% Longer roll cooldown' in self._bonus: game.player.roll_cooldown *= 2
+
+    def act_art(self, game, art):
+        super().act_art(game, art)
+        if '-40% Artifact cooldown' in self._bonus: art.cooldown *= .6
+
+    def use_potion(self, game):
+        super().use_potion(game)
+        if '-40% Potion cooldown' in self._bonus: game.player.potion_cooldown *= .6
+
+    def equip(self, game):
+        if 'Gives you a pet bat' in self._bonus:
+            self._bat = dungeon_helpful.Bat(game.player.rect.x, game.player.rect.y)
+            game.helpfuls.append(self._bat)
+
+    def remove(self, game):
+        if 'Gives you a pet bat' in self._bonus:
+            self._bat._nowdie = True
+            self._bat.hp = 0
 
 
 class SpelunkerArmor(BaseArmor):
@@ -1315,6 +2095,8 @@ class SpelunkerArmor(BaseArmor):
         self.hp = pow * .86
         self.color = pygame.Color('orange')
         self._bat = None
+        self._bonus = ['Gives you a pet bat', '20% Weapon damage boost aura']
+        self.dmg_mul = .2
         self.update_descript()
 
     def equip(self, game):
@@ -1323,6 +2105,7 @@ class SpelunkerArmor(BaseArmor):
 
     def remove(self, game):
         self._bat._nowdie = True
+        self._bat.hp = 0
 
 
 class FoxArmor(BaseArmor):
@@ -1331,12 +2114,16 @@ class FoxArmor(BaseArmor):
         self.name = 'Fox Armor'
         self.hp = pow
         self.color = pygame.Color('orange')
+        self._bonus = ['30% chance to negate damage', '+20% Weapon damage boost aura', 'Health potions heal nearby allies']
+        self.dmg_boost = .2
         self.update_descript()
 
     def _protect(self, damage):
+        if random.randint(1, 10) < self.get_ench('Deflect') * 2 + 1:
+            return 0
         if random.randint(1, 10) < 4:
             return 0
-        return damage
+        return damage * self.prot_dict[self.get_ench('Protection')]
 
 
 class FrostBite(BaseArmor):
@@ -1345,12 +2132,10 @@ class FrostBite(BaseArmor):
         self.name = 'Frost Bite'
         self.hp = pow - 1
         self.color = pygame.Color('light blue')
+        self._bonus = ['+30% Ranged damage', '+50% Souls Gathered', 'Spawns a snowy companion']
+        self._soul = .5
+        self.arrow_boost = .3
         self.update_descript()
-
-    def render(self, x, y, game):
-        super().render(x, y, game)
-        if game.player.range and game.player.range._is_increased < 2:
-            game.player.range._is_increased = 2
 
 
 class MetalArmor(BaseArmor):
@@ -1359,14 +2144,21 @@ class MetalArmor(BaseArmor):
         self.name = 'Full Metal Armor'
         self.hp = pow * 1.14
         self.color = pygame.Color('grey')
-        self._speed = -1
         self.protect = .65
+        self._bonus = ['35% Damage Reduction', '30% chance to negate damage', '+30% Melee damage', '100% Longer roll cooldown']
+        self.dmg_mul = .3
         self.update_descript()
 
     def _protect(self, damage):
+        if random.randint(1, 10) < self.get_ench('Deflect') * 2 + 1:
+            return 0
         if random.randint(1, 10) < 4:
             return 0
-        return damage * .65
+        return damage * .65 * self.prot_dict[self.get_ench('Protection')]
+
+    def roll(self, game):
+        super().roll(game)
+        game.player.roll_cooldown *= 2
 
 
 class SpiderArmor(BaseArmor):
@@ -1375,7 +2167,9 @@ class SpiderArmor(BaseArmor):
         self.name = 'Spider Armor'
         self.hp = pow * 1.08
         self.color = pygame.Color('black')
-        self._speed = 1
+        self._bonus = ['+25% Melee attack speed', '6% Lifesteal aura']
+        self.attack_speed = .25
+        self.life_aura = .06
         self.update_descript()
 
 
@@ -1385,6 +2179,8 @@ class MercenaryArmor(BaseArmor):
         self.name = 'Mercenary Armor'
         self.hp = pow + 3
         self.color = pygame.Color('red')
+        self._bonus = ['35% Damage reduction', '+20% Weapon damage boost aura']
+        self.dmg_mul = .2
         self.protect = .65
         self.update_descript()
 
@@ -1582,7 +2378,7 @@ class LightningRod(Artifact):
 
     def _draw(self, game):
         x, y = game.player.rect.x, game.player.rect.y
-        pygame.draw.lines(game.screen, pygame.Color('yellow'), [(x - 5, y - 100), (x + 5, y - 80), (x, y - 60), (x + 20, y - 40), (x + 10, y - 20), (x - 5, y), (x + 5, y + 20)], 3)
+        pygame.draw.lines(game.screen, pygame.Color('yellow'), True, [(x - 5, y - 100), (x + 5, y - 80), (x, y - 60), (x + 20, y - 40), (x + 10, y - 20), (x - 5, y), (x + 5, y + 20)], 3)
 
     def use(self, game):
         if super().use(game):
@@ -1877,7 +2673,7 @@ class GolemKit(Artifact):
 
     def use(self, game):
         if self._ready and super().use(game):
-            self._golem = dungeon_helpful.Golem(game.player.rect.x, game.player.rect.y, pow)
+            self._golem = dungeon_helpful.Golem(game.player.rect.x, game.player.rect.y, self.pow)
             game.helpfuls.append(self._golem)
             self._ready = False
 

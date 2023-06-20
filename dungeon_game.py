@@ -14,7 +14,7 @@ from dungeon_settings import FONT_PATH, BASEPATH  # need the fonts
 import dungeon_logger as logger
 import pygame
 
-__version__ = '1.5.3'
+__version__ = '1.7.1'
 
 if True:  # not dungeon_settings.DO_FULL_SCREEN:
     # resizable window, but not full screen
@@ -90,8 +90,8 @@ def dif(dif):
 
 
 # dictionary of chest names -> chest types
-chests = {'inventory': dungeon_chests.InventoryChest, 'armor': dungeon_chests.ArmorChest, 'silver': dungeon_chests.SilverChest, 'blue': dungeon_chests.SupplyChest,
-          'norm': dungeon_chests.WeaponChest, 'gold': dungeon_chests.ConsumableChest, 'emerald': dungeon_chests.EmeraldChest, 'obsidian': dungeon_chests.ObsidianChest}
+chests = {'armor': dungeon_chests.ArmorChest, 'silver': dungeon_chests.SilverChest, 'supply': dungeon_chests.SupplyChest,
+          'norm': dungeon_chests.WeaponChest, 'emerald': dungeon_chests.EmeraldChest, 'obsidian': dungeon_chests.ObsidianChest}
 
 
 # Finally doesn't use Tkinter anymore!
@@ -116,8 +116,8 @@ class Game:
     # the game object that is created when a world is loaded
     def __init__(self, spx, spy, using_save, name='New World', filename='New World'):
         # chest loot pool
-        self.chests_pool = ['inventory', 'inventory', 'inventory', 'inventory', 'inventory', 'obsidian', 'armor', 'armor', 'armor', 'armor', 'silver', 'silver', 'blue', 'blue', 'norm', 'norm', 'norm', 'norm', 'norm', 'norm',
-                            'norm', 'gold', 'gold', 'gold', 'gold', 'emerald', 'emerald', 'blue', 'gold', 'emerald', 'norm', 'norm', 'obsidian', 'obsidian', 'obsidian', 'emerald', 'obsidian', 'emerald', 'gold', 'gold', 'norm', 'norm', 'norm']
+        self.chests_pool = ['obsidian', 'armor', 'armor', 'armor', 'armor', 'silver', 'silver', 'norm', 'norm', 'norm', 'norm', 'norm', 'norm', 'supply', 'supply',
+                            'norm', 'emerald', 'emerald', 'emerald', 'norm', 'norm', 'obsidian', 'obsidian', 'obsidian', 'emerald', 'obsidian', 'emerald', 'norm', 'norm', 'norm']
         self.player = dungeon_player.Player(spx, spy, dif(
             dungeon_settings.DIFFICULTY))  # make the player
         self.pname = 'Player'  # player name TODO: make an option to change this
@@ -225,69 +225,75 @@ class Game:
                 logger.stop()
                 sys.exit(0)
             # a lot of keybinds (functions are explained in player module)
-            if event.type == pygame.KEYDOWN:
+            elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_a:
                     self.moving['left'] = 1
-                if event.key == pygame.K_d:
+                elif event.key == pygame.K_d:
                     self.moving['right'] = 1
-                if event.key == pygame.K_s:
+                elif event.key == pygame.K_s:
                     self.moving['down'] = 1
-                if event.key == pygame.K_w:
+                elif event.key == pygame.K_w:
                     self.moving['up'] = 1
-                if event.key == pygame.K_UP:
+                elif event.key == pygame.K_UP:
                     self.player.nextweapon()
-                if event.key == pygame.K_p:
+                elif event.key == pygame.K_p:
                     self.player.delete_weapon()
-                if event.key == pygame.K_o:
+                elif event.key == pygame.K_o:
                     self.player.delete_range()
-                if event.key == pygame.K_i:
+                elif event.key == pygame.K_i:
                     self.player.delete_armor(self)
-                if event.key == pygame.K_1:
+                elif event.key == pygame.K_1:
                     self.player.enchantw(self)
-                if event.key == pygame.K_2:
+                elif event.key == pygame.K_2:
                     self.player.enchantr(self)
-                if event.key == pygame.K_3:
+                elif event.key == pygame.K_3:
                     self.player.enchanta(self)
-                if event.key == pygame.K_RIGHT:
+                elif event.key == pygame.K_RIGHT:
                     self.player.nextrange()
-                if event.key == pygame.K_DOWN:
+                elif event.key == pygame.K_DOWN:
                     self.player.nextc()
-                if event.key == pygame.K_LEFT:
+                elif event.key == pygame.K_LEFT:
                     self.player.nextarmor(self)
-                if event.key == pygame.K_u:
+                elif event.key == pygame.K_u:
                     self.player.special2(self)
-                if event.key == pygame.K_4:
+                elif event.key == pygame.K_4:
                     self.player.na(1)
-                if event.key == pygame.K_5:
+                elif event.key == pygame.K_5:
                     self.player.na(2)
-                if event.key == pygame.K_6:
+                elif event.key == pygame.K_6:
                     self.player.na(3)
-                if event.key == pygame.K_7:
+                elif event.key == pygame.K_7:
                     self.player.usea(1, self)
-                if event.key == pygame.K_8:
+                elif event.key == pygame.K_8:
                     self.player.usea(2, self)
-                if event.key == pygame.K_9:
+                elif event.key == pygame.K_9:
                     self.player.usea(3, self)
-                if event.key == pygame.K_F2:  # take a screenshot
+                elif event.key == pygame.K_e and self.player.potion_cooldown <= 0:
+                    self.player.potion_cooldown = self.player.get_pot_cooldown(self)
+                    self.player.hp = self.player.hpmax
+                elif event.key == pygame.K_SPACE and self.player.roll_cooldown <= 0:
+                    self.player.roll_cooldown = 3
+                    self.player.roll(self)
+                elif event.key == pygame.K_F2:  # take a screenshot
                     name = 'screenshot_' + str(datetime.datetime.now()).replace(
                         '/', '_').replace(':', '_').replace('-', '_').replace('.', '_') + '.png'
                     pygame.image.save(screen, os.path.join(
                         BASEPATH, 'screenshots', name))
                     self.message('Screenshot saved as ' + name)
-                if event.key == pygame.K_t:
+                elif event.key == pygame.K_t:
                     t = textinput(self, '')
                     dungeon_parser.parse(
                         self, t)  # just parse the chat in a different module
-                if event.key == pygame.K_ESCAPE:  # pause game
+                elif event.key == pygame.K_ESCAPE:  # pause game
                     do_quit = self.pausemenu()
-            if event.type == pygame.KEYUP:  # stop moving if move keys are released
+            elif event.type == pygame.KEYUP:  # stop moving if move keys are released
                 if event.key == pygame.K_a:
                     self.moving['left'] = 0
-                if event.key == pygame.K_d:
+                elif event.key == pygame.K_d:
                     self.moving['right'] = 0
-                if event.key == pygame.K_s:
+                elif event.key == pygame.K_s:
                     self.moving['down'] = 0
-                if event.key == pygame.K_w:
+                elif event.key == pygame.K_w:
                     self.moving['up'] = 0
 
         if self.moving['left'] == 1:  # move player, scroll objects
@@ -315,7 +321,7 @@ class Game:
         if pygame.mouse.get_pressed()[0] == 1 and self.player.cooldown <= 0:
             self.player.attack(self)
         # rightclick=ranged (dunno why i called it special)
-        elif pygame.mouse.get_pressed()[2] == 1 and self.player.rcooldown <= 0:
+        if pygame.mouse.get_pressed()[2] == 1 and self.player.rcooldown <= 0:
             self.player.special(self)
 
         self.screen.fill(self.screen_color)  # clear the screen

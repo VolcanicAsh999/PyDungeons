@@ -242,6 +242,25 @@ class PoisonCloud(ThrownPotion):
             game.other.remove(self)
 
 
+class PoisonCloud_(ThrownPotion):
+    def __init__(self, x, y, dmg):
+        super().__init__(x, y, 'poison')
+        self.dmg = dmg
+
+    def render(self, game):
+        self.draw(game)
+        for i in game.enemies:
+            if i.rect.colliderect(pygame.Rect(self.x - 10,
+                                                self.y - 10,
+                                                20, 20)):
+                if i.effects_['poison'][0] < 3:
+                    i.effects_['poison'] = (3, self.dmg)
+        if time.time() - self.t >= 10:
+            self.x = 1000000
+            self.y = 1000000
+            game.other.remove(self)
+
+
 class TNT:
     def __init__(self, x, y, data={}):
         self.x = x
@@ -457,6 +476,33 @@ class WraithFlames:  # Fire made by a wraith
     def get_save_data(self):
         return {'x': self.x, 'y': self.y,
                 'howlong': time.time() - self.getridof, 'delayd': self.delayd}
+
+
+class HelpFire(WraithFlames):
+    def __init__(self, x, y, data={}):
+        super().__init__(x, y, data)
+        self.col = pygame.Color('red')
+        self.dmg = data['dmg']
+        self.delayD = 10
+
+    def render(self, game):
+        self.draw(game)
+        if time.time() - self.getridof > 7:
+            if self in game.other:
+                game.other.remove(self)  # Die after 7 seconds
+        self.delayd += 1
+        if self.delayd >= self.delayD:
+            self.delayd = 0
+            for entity in game.enemies:
+                if entity.rect.colliderect(pygame.Rect(self.x, self.y, 20, 20)):
+                    entity.hp -= self.dmg  # hurt them, light them on fire
+                    if entity.effects['fire'] < 4:
+                        entity.effects['fire'] = 4
+
+    def get_save_data(self):
+        d = super().get_save_data()
+        d['dmg'] = self.dmg
+        return d
 
 
 class GeomancerColumn:  # Geomancer column

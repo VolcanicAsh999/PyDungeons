@@ -22,6 +22,8 @@ class HitBox:
 
 class Player:
     def __init__(self, x, y, difficulty):
+        self.max_souls = 300
+        self.potion_cooldown = 0
         self.difficulty = 0
         self.dif = difficulty
         self.dx = self.dy = 0
@@ -40,6 +42,8 @@ class Player:
         self.ia1 = self.ia2 = self.ia3 = 0
         self.effects = {'speed': 0, 'slowness': 0, 'strength': 0, 'weakness': 0,
                         'resistance': 0, 'poison': 0, 'regeneration': 0, 'fire': 0}
+        self.effects_ = {'guarding strike': (0,0), 'potion barrier': (0,0), 'soul speed': (0,0), 'swiftfooted': (0,0), 'rush': (0,0)}
+        self._pain = 0
         self.cooldown = 0
         self.rcooldown = 0
         self.delaymove = 0
@@ -61,14 +65,20 @@ class Player:
         self.arrows = 10
         self.power = 0
         self.nextartype = 'default'
-        self.attack_speed = 0
+        self.attack_speed = 1
         self.timelast = time.time()
+        self._game = None  # Just in case
+        self.roll_cooldown = 0
+        self.saved_damage = 0
 
     @property
     def power_(self):
         return self.power + ((self.dif - 1) * 15)
 
     def render(self, game):
+        if self._game is None:
+            self._game = game
+            
         if self.hp <= 0:
             self.die(game)
             return
@@ -78,6 +88,12 @@ class Player:
 
         if self.rcooldown > 0:
             self.rcooldown -= time.time() - self.timelast
+
+        if self.potion_cooldown > 0:
+            self.potion_cooldown -= time.time() - self.timelast
+
+        if self.roll_cooldown > 0:
+            self.roll_cooldown -= time.time() - self.timelast
 
         self.timelast = time.time()
 
@@ -92,6 +108,9 @@ class Player:
                 self.hp += 1
             if self.effects['fire'] > 0 and self.effects['fire'] % 2 == 0:
                 self.hp -= 1
+            for effect in self.effects_.keys():
+                if self.effects_[effect][0] > 0:
+                    self.effects_[effect] = (self.effects_[effect][0] - (time.time() - self.decreaseeffectslast), self.effects_[effect][1])
 
         for effect in self.effects.keys():
             if self.effects[effect] > 0 and effect != 'fire':
@@ -126,8 +145,9 @@ class Player:
     def delete_armor(self, game):
         if self.armor:
             self.armor.salvage(self)
+            self.armor.remove(game)
+            self.hpmax -= self.armor.hp
             self.armors.remove(self.armor)
-            self.hpmax -= self.armor
             # self.armor = None
             self.nextarmor(game, amount=0)
         self.update_power()
@@ -148,6 +168,7 @@ class Player:
     def move(self, game, x=0, y=0):
         increase = self.increase()
         x2, y2 = x, y
+        if self.armor: self.armor.move(game)
         if x != 0:
             if self.effects['speed'] > 0:
                 if x > 0:
@@ -167,6 +188,10 @@ class Player:
                 x = -1
             if x2 > 0 and x <= 0:
                 x = 1
+            x *= (self.effects_['soul speed'][1]/100) + 1
+            x *= self.effects_['swiftfooted'][1] + 1
+            x *= self.effects_['rush'][1] + 1
+            if self.armor: x *= self.armor._move
             self.rect.x += x
             '''for wall in game.walls:
                 """if self.rect.colliderect(wall.rect):
@@ -195,6 +220,10 @@ class Player:
                 y = -1
             if y2 > 0 and y <= 0:
                 y = 1
+            y *= (self.effects_['soul speed'][1]/100) + 1
+            y *= self.effects_['swiftfooted'][1] + 1
+            y *= self.effects_['rush'][1] + 1
+            if self.armor: y *= self.armor._move
             self.rect.y += y
             '''for wall in game.walls:
                 """if self.rect.colliderect(wall.rect):
@@ -239,10 +268,19 @@ class Player:
                     self.rect.y -= y
                     return"""  # makes movement choppy
 
+    def roll(self, game):
+        if self.armor:
+            self.armor.roll(game)
+        if self.weapon:
+            self.weapon.roll(game)
+
     def attack(self, game):
         damage = 1
         if self.weapon:
             damage = self.weapon.damage
+        if self.armor and self.armor.has_ench('Cowardice') and self.hp >= self.hpmax:
+            damage *= (1.1 + (self.armor.get_ench('Cowardice') / 10))
+        if self.armor: damage *= self.armor.damage_mul()
         if self.effects['strength'] > 0:
             damage += 2
         if self.effects['weakness'] > 0:
@@ -250,7 +288,7 @@ class Player:
         cooldown = .5
         if self.weapon:
             cooldown = self.weapon.cooldown
-        reach = 80
+        reach = 30
         if self.weapon:
             reach = self.weapon.reach
         knockback = 20
@@ -260,7 +298,7 @@ class Player:
         for enemy in game.enemies:
             if pygame.sprite.collide_rect(self.colliderect, enemy.hitbox):
                 if self.weapon:
-                    self.weapon.attack(enemy, self, damage, knockback)
+                    self.weapon.attack(enemy, self, damage, knockback, game)
                 else:
                     enemy.take_damage(damage)
                     enemy.knockback(knockback, self)
@@ -270,24 +308,30 @@ class Player:
         for i in game.spawners:
             if pygame.sprite.collide_rect(self.colliderect, i):
                 i.take_damage(1)
-        self.cooldown = cooldown
-        if self.attack_speed != 0:
-            self.cooldown -= self.attack_speed
+        self.cooldown = cooldown * self.attack_speed
+        if self.armor:
+            self.cooldown *= (1 - self.armor.attack_speed)
+            self.hp += (damage * self.armor.life_aura)
         dungeon_settings.weapon_swing.play()
 
-    def take_damage(self, damage):
+    def take_damage(self, damage, source=None):
         damage += (1 - self.dif) * 3
         if self.effects['resistance'] > 0:
             damage -= 2
         if self.armor:
             damage = self.armor._protect(damage)
+        if self.effects_['guarding strike'][0] > 0:
+            damage *= self.effects_['guarding strike'][1]
+        if self.effects_['potion barrier'][0] > 0:
+            damage *= self.effects_['potion barrier'][1]
         if damage < 0:
             damage = 0
         self.hp -= damage
+        self.saved_damage = damage
 
     def armor_use(self, enemy, game):
         if self.armor:
-            self.armor.do_special(self, enemy, game)
+            self.armor.got_hit(self, enemy, game)
 
     def knockback(self, knockback, player):
         if knockback > 0:
@@ -313,6 +357,8 @@ class Player:
                     self.rect.y -= 1
                 if player.rect.y > self.rect.y:
                     self.rect.y += 1
+        if issubclass(type(player), dungeon_arrows.Arrow) and self.armor:
+            self.armor.arrow_hit(self._game)
 
     def draw(self, game):
         pygame.draw.rect(game.screen, pygame.Color('blue'), pygame.Rect(
@@ -388,6 +434,13 @@ class Player:
         pygame.draw.circle(game.screen, pygame.Color(
             'light grey'), (5, 50), 3)  # arrow pic
 
+        pygame.draw.rect(game.screen, pygame.Color('red'),
+                         (5, 80, 10, 10))
+        pygame.draw.line(game.screen, pygame.Color('grey'),
+                         (5, 73), (15, 73), 4)
+        pygame.draw.line(game.screen, pygame.Color('grey'), (10, 75), (10, 79), 4)
+        if self.potion_cooldown > 0: pygame.draw.rect(game.screen, pygame.Color('grey'), (5, 70 + (20 - self.potion_cooldown / 3 * 2), 10, self.potion_cooldown / 3 * 2))
+
         if self.effects['fire'] > 0:
             pygame.draw.line(game.screen, pygame.Color(
                 'red'), (self.rect.x + 10, self.rect.y + 24), (self.rect.x + 7, self.rect.y + 5), 4)
@@ -395,6 +448,10 @@ class Player:
                 'red'), (self.rect.x + 20, self.rect.y + 27), (self.rect.x + 23, self.rect.y + 3), 4)
             pygame.draw.line(game.screen, pygame.Color(
                 'red'), (self.rect.x + 14, self.rect.y + 26), (self.rect.x + 16, self.rect.y + 7), 4)
+
+    def get_pot_cooldown(self, game):
+        if self.armor: self.armor.use_potion(game)
+        return 30
 
     def getloot(self, loot, emerald, game):
         if not isinstance(loot, list):
@@ -404,7 +461,6 @@ class Player:
                     loot.damage += (self.dif - 1) * 4
                     loot.reach += (self.dif - 1) * 10
                     loot.knockback += (self.dif - 1) * 20
-                    loot.num += (self.dif - 1) * 2
                     loot._speed += (self.dif - 1)
                     self.weapons.append(loot)
                     game.message('You got the ' + loot.name + '!', 200)
@@ -472,15 +528,17 @@ class Player:
         self.update_power()
 
     def nextarmor(self, game, amount=1):
-        if self.armor != None:
-            self.hpmax -= self.armor.hp
         self.indexarmor += amount
         if self.indexarmor > len(self.armors) - 1:
             self.indexarmor = 0
+        if self.armor: self.armor.remove(game)
         self.armor = self.armors[self.indexarmor]
         if self.armor != None:
-            #self.armor.equip(game)
-            self.hpmax += self.armor.hp
+            self.armor.equip(game)
+            self.hpmax = self.armor.hp + 40
+            self.max_souls = 300 * self.armor.get_soul_max_mul()
+            if self.armor.has_ench('Reckless'):
+                self.hpmax *= .6
         self.update_power()
 
     def na(self, i, amount=1):
@@ -509,7 +567,7 @@ class Player:
 
     def enchantw(self, game):
         if self.weapon and self.level >= 1:
-            self.level = self.weapon.enchant(self.level, game)
+            self.level = self.weapon.enchant(game)
         self.update_power()
 
     def enchantr(self, game):
@@ -520,6 +578,10 @@ class Player:
     def enchanta(self, game):
         if self.armor and self.level >= 1:
             self.level = self.armor.enchant(self.level, game)
+        self.hpmax = self.armor.hp + 40
+        self.max_souls = 300 * self.armor.get_soul_max_mul()
+        if self.armor.has_ench('Reckless'):
+            self.hpmax *= .6
         self.update_power()
 
     def get_xp(self, xp):
@@ -529,7 +591,7 @@ class Player:
             self.level += 1
 
     def special(self, game):
-        if self.range and self.arrows > 0:
+        if self.range and self.arrows > 0 and self.rcooldown  <= 0:
             if self.nextartype == 'default':
                 a = self.range.arrow['type']
             elif self.nextartype == 'flame':
@@ -537,8 +599,16 @@ class Player:
             elif self.nextartype == 'explode':
                 a = dungeon_arrows.ExplodingArrow
             self.nextartype = 'default'
+            damage = self.range.arrow['damage']
+            damage_ = self.range.arrow['damage']
+            if self.armor and self.armor.has_ench('Cowardice') and self.hp >= self.hpmax:
+                damage *= (1.1 + (self.armor.get_ench('Cowardice') / 10))
+            if self.armor:
+                damage *= (1 + self.armor.arrow_boost)
+            self.range.arrow['damage'] = damage
             self.range.shoot(game, self, a)
-            self.rcooldown = self.range.cooldown
+            self.range.arrow['damage'] = damage_
+            self.rcooldown = self.range.cooldown * self.range.cooldown_mul()
             if self.attack_speed != 0:
                 self.rcooldown -= self.attack_speed
             self.arrows -= 1
@@ -551,19 +621,22 @@ class Player:
             self.nextc(amount=0)
 
     def kill(self):
+        kills = 0
         if self.weapon:
-            self.kills += self.weapon._kills
+            kills += self.weapon._kills
         if self.range:
-            self.kills += self.range._kills
-        if self.armor:
-            self.kills += self.armor._kills
+            kills += self.range._kills
         if self.a1:
-            self.kills += self.a1._gives_kill
+            kills += self.a1._gives_kill
         if self.a2:
-            self.kills += self.a2._gives_kill
+            kills += self.a2._gives_kill
         if self.a3:
-            self.kills += self.a3._gives_kill
+            kills += self.a3._gives_kill
+        if self.armor:
+            kills += self.armor._kills
+            kills *= 1 + self.armor._soul
         #self.kills += 1
+        self.kills += kills
 
         self.difficulty += random.choice([1/14, 1/7])
         if self.dif == 2:
@@ -572,6 +645,12 @@ class Player:
             self.difficulty += random.choice([0, 1/14, 1/7, 1/7])
         if self.difficulty > 50:
             self.difficulty = 50
+
+        if self.kills > self.max_souls:
+            self.kills = self.max_souls
+
+        if self.armor and kills: self.armor.got_soul(self)
+        if self.range and kills: self.range.got_soul(self)
 
     def die(self, game):
         if dungeon_settings.FRIENDLY_MODE:
@@ -616,20 +695,38 @@ class Player:
         elif hasattr(self.a3, 'using') and self.a3.using and i == 3:
             self.a3.cancel()
         elif i == 1 and self.a1 and self.a1.cooldown <= 0:
+            pow = self.a1.pow
+            if self.armor: pow *= 1 + self.armor._art
+            pow_ = self.a1.pow
+            self.a1.pow = pow
             try:
                 self.a1.use(game)
             except TypeError:
                 self.a1.use(game, 1)
+            self.a1.pow = pow_
+            if self.armor: self.armor.act_art(game, self.a1)
         elif i == 2 and self.a2 and self.a2.cooldown <= 0:
+            pow = self.a2.pow
+            if self.armor: pow *= 1 + self.armor._art
+            pow_ = self.a2.pow
+            self.a2.pow = pow
             try:
                 self.a2.use(game)
             except TypeError:
                 self.a2.use(game, 2)
+            self.a2.pow = pow_
+            if self.armor: self.armor.act_art(game, self.a2)
         elif i == 3 and self.a3 and self.a3.cooldown <= 0:
+            pow = self.a3.pow
+            if self.armor: pow *= 1 + self.armor._art
+            pow_ = self.a3.pow
+            self.a3.pow = pow
             try:
                 self.a3.use(game)
             except TypeError:
                 self.a3.use(game, 3)
+            self.a3.pow = pow_
+            if self.armor: self.armor.act_art(game, self.a3)
 
     def update_power(self):
         power = 0
@@ -653,6 +750,6 @@ class Player:
             power += self.a3.get_power()
             num += 1
         if num == 0:
-            self.power = 0
+            self.power = 1
             return
-        self.power = power // num
+        self.power = int(power / num) + 1

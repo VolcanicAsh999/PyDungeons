@@ -29,7 +29,7 @@ class Helpful:
         self.color = pygame.Color('black')
         self.effects = {'speed': 0, 'slowness': 0, 'strength': 0,
                         'weakness': 0, 'resistance': 0, 'poison': 0,
-                        'regeneration': 0, 'fire': 0}
+                        'regeneration': 0, 'fire': 0, 'fatal': 0}
         self.decreaseeffectslast = time.time()
 
     def render(self, game):
@@ -38,7 +38,7 @@ class Helpful:
         if time.time() - self.decreaseeffectslast >= 1:
             self.decreaseeffectslast = time.time()
             for effect in self.effects.keys():
-                if self.effects[effect] > 0:
+                if self.effects[effect] > 0 and effect != 'fatal':
                     self.effects[effect] -= 1
             if self.effects['poison'] > 0 and random.randint(0, 2) == 0 \
                and self.hp > 1:
@@ -46,6 +46,8 @@ class Helpful:
             if self.effects['regeneration'] > 0 and random.randint(0, 2) == 0:
                 self.hp += 1
             if self.effects['fire'] > 0 and random.randint(0, 1) == 0:
+                self.hp -= 1
+            if self.effects['fatal'] and random.randint(0, 2) == 0:
                 self.hp -= 1
                 
         for effect in self.effects.keys():  # Particles
@@ -183,7 +185,7 @@ class Helpful:
 
 
 class Golem(Helpful):
-    def __init__(self, x, y):
+    def __init__(self, x, y, pow):
         super().__init__(x, y)
         self.drect = pygame.Rect(x, y, 50, 70)
         self.rect = pygame.Rect(x - 20, y - 20, 90, 90)
@@ -192,15 +194,16 @@ class Golem(Helpful):
         self.name = 'Iron Golem'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.damage = 18
-        self.hpmax = 100
+        self.damage = 10 * pow
+        self.hpmax = 30 * pow
         self.hp = self.hpmax
         self.knockback_resistance = 20
         self.knockbackd = 80
-        self.delay_move = 15
+        self.delay_move = 1
         self.delay_damage = 25
-        self.speed = 3
+        self.speed = 2
         self.color = pygame.Color(250, 250, 250, 255)
+        self.pow = pow
 
     def draw(self, game):
         super().draw(game)
@@ -215,8 +218,41 @@ class Golem(Helpful):
                          (self.drect.x + 50, self.drect.y + 10), 10)
 
 
+class Bee(Helpful):
+    def __init__(self, x, y, pow):
+        super().__init__(x, y)
+        self.drect = pygame.Rect(x, y, 20, 10)
+        self.rect = self.drect
+        self.name = 'Bee'
+        self.text = pygame.font.SysFont(self.name, 20).render(
+            self.name, 1, pygame.Color('black'))
+        self.damage = 1 + (pow * .1)
+        self.hpmax = 10 + (pow * .3)
+        self.hp = self.hpmax
+        self.knockbackd = 10
+        self.delay_move = 0.7
+        self.delay_damage = 30
+        self.speed = 3
+        self.color = pygame.Color('yellow')
+        self.pow = pow
+        self.hit = False
+
+    def draw(self, game):
+        super().draw(game)
+        pygame.draw.rect(game.screen, self.color, pygame.Rect(self.drect.x, self.drect.y, 15, 10))
+        pygame.draw.rect(game.screen, pygame.Color('red'), pygame.Rect(self.drect.x + 15, self.drect.y + 2, 5, 4))
+
+    def attack(self, game):
+        if not self.hit:
+            self.going.take_damage(self.damage)  # Attack the enemy
+            self.going.knockback(self.knockbackd, self)
+            self.hit = True
+        else:
+            self.effects['fatal'] = 1
+
+
 class Wolf(Helpful):
-    def __init__(self, x, y):
+    def __init__(self, x, y, pow):
         super().__init__(x, y)
         self.drect = pygame.Rect(x, y, 20, 10)
         self.rect = pygame.Rect(x - 10, y - 5, 40, 20)
@@ -225,14 +261,15 @@ class Wolf(Helpful):
         self.name = 'Wolf'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.damage = 2
-        self.hpmax = 10
+        self.damage = 2 * pow
+        self.hpmax = 10 * pow
         self.hp = self.hpmax
         self.knockbackd = 20
         self.delay_move = 5
         self.delay_damage = 10
         self.speed = 4
         self.color = pygame.Color(250, 250, 250, 255)
+        self.pow = pow
 
     def draw(self, game):
         super().draw(game)
@@ -245,7 +282,7 @@ class Wolf(Helpful):
 
     def attack(self, game):
         super().attack(game)
-        self.hp += 1 #Heal from attacking
+        self.hp += random.randint(0, 2) #Heal from attacking
 
 
 class Bat(Helpful):

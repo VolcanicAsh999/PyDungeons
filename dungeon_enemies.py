@@ -3,6 +3,7 @@ import random
 import dungeon_arrows
 import dungeon_settings
 import dungeon_weapons
+import dungeon_chests
 import time
 import threading
 from dungeon_misc import particle
@@ -25,6 +26,11 @@ class BaseEnemy:
     def __init__(self, x, y):
         self.maintype = ''
         self.secondtype = ''
+
+        self.enchants = []
+
+        self.luck_cons = 3
+        self.luck_ems = 7
         
         self.dx = self.dy = 0
         self.rect = pygame.rect.Rect((x, y, 30, 35))
@@ -34,10 +40,10 @@ class BaseEnemy:
         self.color_arm = pygame.Color('green')
         
         self.damage = 0
-        self.delay_damage = 10
-        self.delay_move = 17
-        self.delaydamage = 0
-        self.delaymove = 0
+        self.delay_damage = .5
+        self.delay_move = .05
+        self.delaydamage = time.time()
+        self.delaymove = time.time()
         self.hpmax = 20
         self.hp = self.hpmax
         
@@ -52,6 +58,7 @@ class BaseEnemy:
         self.effects = {'speed': 0, 'slowness': 0, 'strength': 0,
                         'weakness': 0, 'resistance': 0, 'poison': 0,
                         'regeneration': 0, 'fire': 0}
+        self.effects_ = {'fire': (0,0), 'void strike': (0,0), 'freezing': (0,0), 'poison': (0,0), 'weakened': (0,0)}
         
         self.decreaseeffectslast = time.time()
         
@@ -68,40 +75,48 @@ class BaseEnemy:
 
     def render(self, game):
         player = self.get_target(game)
-        self.delaymove += 1
-        if self.delaymove >= self.delay_move:
-            self.delaymove = 0
+        if time.time() - self.delaymove >= self.delay_move:
+            speed = self.speed
+            if self.effects_['freezing'][0] > 0:
+                speed *= self.effects_['freezing'][1]
+            self.delaymove = time.time()
             if player.rect.x < self.rect.x:
-                self.rect.x -= self.speed
+                self.rect.x -= speed
                 if self.effects['slowness'] > 0:
                     self.rect.x += 1
             else:
-                self.rect.x += self.speed
+                self.rect.x += speed
                 if self.effects['slowness'] > 0:
                     self.rect.x -= 1
             if player.rect.y < self.rect.y:
-                self.rect.y -= self.speed
+                self.rect.y -= speed
                 if self.effects['slowness'] > 0:
                     self.rect.y += 1
             else:
-                self.rect.y += self.speed
+                self.rect.y += speed
                 if self.effects['slowness'] > 0:
                     self.rect.y -= 1
 
             self.hitbox.update(self.rect.x, self.rect.y, self.reach)
 
-        if time.time() - self.decreaseeffectslast >= 1:
-            self.decreaseeffectslast = time.time()
-            for effect in self.effects.keys():
-                if self.effects[effect] > 0:
-                    self.effects[effect] -= 1
-            if self.effects['poison'] > 0 and random.randint(0, 2) == 0 \
-               and self.hp > 1:
-                self.hp -= 1
-            if self.effects['regeneration'] > 0 and random.randint(0, 2) == 0:
-                self.hp += 1
-            if self.effects['fire'] > 0 and random.randint(0, 1) == 0:
-                self.hp -= 1
+        for effect in self.effects.keys():
+            if self.effects[effect] > 0:
+                self.effects[effect] -= time.time() - self.decreaseeffectslast
+        for effect in self.effects_.keys():
+            if self.effects_[effect][0] > 0:
+                self.effects_[effect] = (self.effects_[effect][0] - (time.time() - self.decreaseeffectslast), self.effects_[effect][1])
+        if self.effects['poison'] > 0 and random.randint(0, 2) == 0 \
+            and self.hp > 1:
+            self.hp -= 1
+        if self.effects['regeneration'] > 0 and random.randint(0, 2) == 0:
+            self.hp += 1
+        if self.effects['fire'] > 0 and random.randint(0, 1) == 0:
+            self.hp -= 1
+        if self.effects_['fire'][0] > 0 and random.randint(0, 10) == 0:
+            self.hp -= self.effects_['fire'][1]
+        if self.effects_['poison'][0] > 0 and random.randint(0, 13) == 0:
+            self.hp -= self.effects_['poison'][1]
+        self.decreaseeffectslast = time.time()
                 
         for effect in self.effects.keys():
             if self.effects[effect] > 0 and effect != 'fire':
@@ -115,6 +130,16 @@ class BaseEnemy:
 
         if self.hp <= 0:
             game.enemies.remove(self)
+            while self.luck_cons > 100:
+                self.luck_cons -= 100
+                game.chests.append(dungeon_chests.Hack(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.choice([i for i in dungeon_weapons.cloot if type(i) != str])))
+            if random.randint(1, 100) < self.luck_cons + 1:
+                game.chests.append(dungeon_chests.Hack(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.choice([i for i in dungeon_weapons.cloot if type(i) != str])))
+            while self.luck_ems > 100:
+                self.luck_ems -= 100
+                game.chests.append(dungeon_chests.Hack2(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.randint(2, 5)))
+            if random.randint(1, 100) < self.luck_ems + 1:
+                game.chests.append(dungeon_chests.Hack2(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.randint(2, 5)))
             for i in game.enemies:
                 if type(i) == TheCauldron:
                     if dungeon_util.distance_between(i.rect.x, i.rect.y,
@@ -128,15 +153,20 @@ class BaseEnemy:
             game.player.kill()
             self.dead = True
 
-        self.delaydamage += 1
-        if self.delaydamage >= self.delay_damage and self.speed > 0:
+        if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
             if pygame.sprite.collide_rect(player, self.hitbox):
                 if player == game.player:
-                    player.take_damage(self.damage)
+                    if self.effects_['weakened'][0] > 0:
+                        player.take_damage(self.damage * self.effects_['weakened'][1])
+                    else:
+                        player.take_damage(self.damage)
                     player.armor_use(self, game)
                 else:
-                    player.take_damage(self, self.damage)
-            self.delaydamage = 0
+                    if self.effects_['weakened'][0] > 0:
+                        player.take_damage(self, self.damage * self.effects_['weakened'][1])
+                    else:
+                        player.take_damage(self, self.damage)
+            self.delaydamage = time.time()
 
     def draw(self, game):
         pygame.draw.rect(game.screen, self.color_body,
@@ -156,7 +186,7 @@ class BaseEnemy:
         pygame.draw.rect(game.screen, pygame.Color('red'), health_rect)
         game.screen.blit(self.text, (self.rect.x - 5, self.rect.y - 20))
 
-        if self.effects['fire'] > 0:
+        if self.effects['fire'] > 0 or self.effects_['fire'][0] > 0:
             pygame.draw.line(game.screen, pygame.Color('red'),
                              (self.rect.x + 10, self.rect.y + 24),
                              (self.rect.x + 7, self.rect.y + 5), 4)
@@ -237,14 +267,13 @@ class BaseSpawner:
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
         self._dead = False
-        self.spawn_delay = 300
-        self.spawndelay = 0
+        self.spawn_delay = 3
+        self.spawndelay = time.time()
 
     def render(self, game):
         self.draw(game)
-        self.spawndelay += 1
-        if self.spawndelay > self.spawn_delay:
-            self.spawndelay = 0
+        if time.time() - self.spawndelay > self.spawn_delay:
+            self.spawndelay = time.time()
             game.enemies.append(self.mob(random.randint(
                 self.rect.x - 30, self.rect.x + 50),
                                          random.randint(
@@ -299,13 +328,13 @@ class BaseSkeleton(BaseEnemy):
         self.damage = 0
         self.arrow = {'type': dungeon_arrows.Arrow,
                       'damage': 2, 'knockback': 20}
-        self.delay_damage = 70 * 5
+        self.delay_damage = 4
         self.xp_drop = 0.15
         self.speed = 2
         
     def render(self, game):
         super().render(game)
-        if self.delaydamage == 0 and self.speed > 0:
+        if self.delaydamage == time.time() and self.speed > 0:
             self.shoot(game)
 
     def shoot(self, game):
@@ -327,9 +356,9 @@ class Wraith(BaseEnemy):
         self.reach = 20
         self.hpmax = 30
         self.hp = self.hpmax
-        self.delay_move = 5
+        self.delay_move = .03
         self.speed = 5
-        self.delay_damage = 500
+        self.delay_damage = 10
         self.damage = 4
         self.xp_drop = 0.5
         self.text = pygame.font.SysFont('', 20).render(
@@ -343,7 +372,7 @@ class Wraith(BaseEnemy):
 
     def render(self, game):
         super().render(game)
-        if self.delaydamage == 0 and self.speed > 0:
+        if self.delaydamage == time.time() and self.speed > 0:
             '''player = self.get_target(game)
             px, py = player.rect.x, player.rect.y
             sx, sy = self.rect.x, self.rect.y
@@ -418,9 +447,9 @@ class Enderman(BaseEnemy):
         self.reach = 50
         self.hpmax = 40
         self.hp = self.hpmax
-        self.delay_move = 10
+        self.delay_move = .02
         self.speed = 10
-        self.delay_damage = 20
+        self.delay_damage = .3
         self.damage = 5
         self.xp_drop = 0.3
         self.text = pygame.font.SysFont('', 20).render(
@@ -503,9 +532,9 @@ class RedstoneGolem(BaseEnemy):
         self.name = 'Redstone Golem'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.delay_move = 10
+        self.delay_move = .6
         self.speed = 1
-        self.delay_damage = 20
+        self.delay_damage = .6
         self.damage = 10
         self.xp_drop = 0.1
 
@@ -612,8 +641,8 @@ class RedstoneMonstrosity(RedstoneGolem):
         self.name = 'Redstone Monstrosity'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.delay_move = 20
-        self.delay_damage = 40
+        self.delay_move = .05
+        self.delay_damage = .6
         self.damage = 20
         self.xp_drop = 2.0
 
@@ -738,19 +767,20 @@ class Slime(BaseEnemy):
         self.secondtype = 'living'
         self.rect = pygame.Rect(x - 2, y - 2, (size * 9) + 4, (size * 9) + 4)
         self.hitbox = self
+        self.update = lambda *args: 1
         self.size = size
         self.hp = self.hpmax = d1[size]
         self.damage = d2[size]
-        self.delay_move = self.delay_damage = 80
+        self.delay_move = .2
+        self.delay_damage = .4
         self.speed = 15
         self.text = pygame.font.SysFont('', 20).render(
             'Slime', 1, pygame.Color('black'))
 
     def render(self, game):
         player = self.get_target(game)
-        self.delaymove += 1
-        if self.delaymove >= self.delay_move:
-            self.delaymove = 0
+        if time.time() - self.delaymove >= self.delay_move:
+            self.delaymove = time.time()
             if player.rect.x < self.rect.x:
                 self.rect.x -= self.speed
                 if self.effects['slowness'] > 0:
@@ -768,18 +798,24 @@ class Slime(BaseEnemy):
                 if self.effects['slowness'] > 0:
                     self.rect.y -= 1
 
-        if time.time() - self.decreaseeffectslast >= 1:
-            self.decreaseeffectslast = time.time()
-            for effect in self.effects.keys():
-                if self.effects[effect] > 0:
-                    self.effects[effect] -= 1
-            if self.effects['poison'] > 0 and random.randint(0, 2) == 0 \
-               and self.hp > 1:
-                self.hp -= 1
-            if self.effects['regeneration'] > 0 and random.randint(0, 2) == 0:
-                self.hp += 1
-            if self.effects['fire'] > 0 and random.randint(0, 1) == 0:
-                self.hp -= 1
+        for effect in self.effects.keys():
+            if self.effects[effect] > 0:
+                self.effects[effect] -= time.time() - self.decreaseeffectslast
+        for effect in self.effects_.keys():
+            if self.effects_[effect][0] > 0:
+                self.effects_[effect] = (self.effects_[effect][0] - (time.time() - self.decreaseeffectslast), self.effects_[effect][1])
+        if self.effects['poison'] > 0 and random.randint(0, 2) == 0 \
+            and self.hp > 1:
+            self.hp -= 1
+        if self.effects['regeneration'] > 0 and random.randint(0, 2) == 0:
+            self.hp += 1
+        if self.effects['fire'] > 0 and random.randint(0, 1) == 0:
+            self.hp -= 1
+        if self.effects_['fire'][0] > 0 and random.randint(0, 1) == 0:
+            self.hp -= self.effects_['fire'][1]
+        if self.effects_['poison'][0] > 0 and random.randint(0, 2) == 0:
+            self.hp -= self.effects_['poison'][1]
+        self.decreaseeffectslast = time.time()
                 
         for effect in self.effects.keys():
             if self.effects[effect] > 0 and effect != 'fire':
@@ -793,6 +829,16 @@ class Slime(BaseEnemy):
 
         if self.hp <= 0:
             game.enemies.remove(self)
+            while self.luck_cons > 100:
+                self.luck_cons -= 100
+                game.chests.append(dungeon_chests.Hack(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.choice([i for i in dungeon_weapons.cloot if type(i) != str])))
+            if random.randint(1, 100) < self.luck_cons + 1:
+                game.chests.append(dungeon_chests.Hack(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.choice([i for i in dungeon_weapons.cloot if type(i) != str])))
+            while self.luck_ems > 100:
+                self.luck_ems -= 100
+                game.chests.append(dungeon_chests.Hack2(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.randint(2, 5)))
+            if random.randint(1, 100) < self.luck_ems + 1:
+                game.chests.append(dungeon_chests.Hack2(self.rect.x + random.randint(-20, 20), self.rect.y + random.randint(-20, 20), random.randint(2, 5)))
             for i in game.enemies:
                 if type(i) == TheCauldron:
                     if dungeon_util.distance_between(i.rect.x, i.rect.y,
@@ -806,15 +852,20 @@ class Slime(BaseEnemy):
             game.player.kill()
             self.dead = True
 
-        self.delaydamage += 1
-        if self.delaydamage >= self.delay_damage and self.speed > 0:
+        if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
             if pygame.sprite.collide_rect(player, self):
                 if player == game.player:
-                    player.take_damage(self.damage)
+                    if self.effects_['weakened'][0] > 0:
+                        player.take_damage(self.damage * self.effects_['weakened'][1])
+                    else:
+                        player.take_damage(self.damage)
                     game.player.armor_use(self, game)
                 else:
-                    player.take_damage(self, self.damage)
-            self.delaydamage = 0
+                    if self.effects_['weakened'][0] > 0:
+                        player.take_damage(self, self.damage * self.effects_['weakened'][1])
+                    else:
+                        player.take_damage(self, self.damage)
+            self.delaydamage = time.time()
 
     def die(self, game):
         if self.size == 3:
@@ -868,9 +919,9 @@ class Slime(BaseEnemy):
 class RedstoneCube(Slime):
     def __init__(self, x, y):
         super().__init__(x, y, 1)
-        self.delay_move = 30
+        self.delay_move = .04
         self.speed = 2
-        self.delay_damage = 10
+        self.delay_damage = .3
         self.damage = 3
         self.text = pygame.font.SysFont('', 20).render(
             'Redstone Cube', 1, pygame.Color('black'))
@@ -918,9 +969,9 @@ class RedstoneCube(Slime):
 class ConjuredSlime(RedstoneCube):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.delay_move = 10
+        self.delay_move = .04
         self.speed = 2
-        self.delay_damage = 70
+        self.delay_damage = 1.3
         self.damage = 1
         self.text = pygame.font.SysFont('', 20).render(
             'Conjured Slime', 1, pygame.Color('black'))
@@ -944,14 +995,14 @@ class Piglin(BaseSkeleton):
         self.color_head = pygame.Color('pink')
         self.color_arm = pygame.Color('pink')
         self.weapon = dungeon_weapons.Crossbow(1)
-        self.delay_damage = 100 * 4
+        self.delay_damage = 5
         self.hp = 24
         self.name = 'Piglin'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
         self.xp_drop = 0.1
         self.hpmax = self.hp
-        self.speed = 3 * 5
+        self.speed = 3
         self.arrow = {'type': dungeon_arrows.Arrow,
                       'damage': 4, 'knockback': 30}
 
@@ -967,7 +1018,8 @@ class ArmoredPiglin(Piglin):
         self.name = 'Armored Piglin'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.armor = 10
+        self.hpmax = 40
+        self.hp = self.hpmax
 
 
 class PiglinSword(BaseEnemy):
@@ -984,7 +1036,7 @@ class PiglinSword(BaseEnemy):
         self.hp = 24
         self.hpmax = self.hp
         self.speed = 3
-        self.delay_damage = 10
+        self.delay_damage = .45
         self.name = 'Piglin'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
@@ -1001,7 +1053,8 @@ class ArmoredPiglinSword(PiglinSword):
         self.name = 'Armored Piglin'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.armor = 10
+        self.hpmax = 40
+        self.hp = self.hpmax
 
 
 class PiglinBrute(PiglinSword):
@@ -1013,7 +1066,7 @@ class PiglinBrute(PiglinSword):
         self.hp = 50
         self.hpmax = self.hp
         self.speed = 5
-        self.delay_damage = 5
+        self.delay_damage = .6
         self.name = 'Piglin Brute'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
@@ -1026,7 +1079,8 @@ class ArmoredPiglinBrute(PiglinBrute):
         self.name = 'Armored Piglin Brute'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.armor = 10
+        self.hpmax = 70
+        self.hp = self.hpmax
 
 
 class BaseIllager(BaseEnemy):    
@@ -1041,7 +1095,7 @@ class BaseIllager(BaseEnemy):
         self.has_weapon = True
         self.weapon = dungeon_weapons.Crossbow(1)
         self.damage = 2
-        self.delay_damage = 10 if self.melee else (80 * 5)
+        self.delay_damage = .5 if self.melee else 6
         self.hp = 24
         self.name = 'Pillager'
         self.text = pygame.font.SysFont(self.name, 20).render(
@@ -1054,7 +1108,7 @@ class BaseIllager(BaseEnemy):
         self.fix()
 
     def fix(self):
-        self.delay_damage = 10 if self.melee else (80 * 5)
+        self.delay_damage = .5 if self.melee else 6
         if self.melee:
             self.damage = self.weapon.damage
         else:
@@ -1070,19 +1124,17 @@ class BaseIllager(BaseEnemy):
     def attack(self, game):
         player = self.get_target(game)
         if self.melee:
-            self.delaydamage += 1
-            if self.delaydamage >= self.delay_damage and self.speed > 0:
+            if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
                 if pygame.sprite.collide_rect(player, self.hitbox):
                     if player == game.player:
                         player.take_damage(self.damage)
                         game.player.armor_use(self, game)
                     else:
                         player.take_damage(self, self.damage)
-                self.delaydamage = 0
+                self.delaydamage = time.time()
         else:
-            self.delaydamage += 1
-            if self.delaydamage >= self.delay_damage and self.speed > 0:
-                self.delaydamage = 0
+            if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
+                self.delaydamage = time.time()
                 arrow = self.arrow['type']((self.rect.x, self.rect.y),
                                            (player.rect.x, player.rect.y),
                                            self.arrow['damage'],
@@ -1186,7 +1238,7 @@ class Spider(BaseEnemy):
         self.damage = 2
         self.col = pygame.Color('black')
         self.eyecol = pygame.Color('red')
-        self.delay_move = 5
+        self.delay_move = .02
         self.speed = 4
 
     def draw(self, game):
@@ -1263,7 +1315,7 @@ class CaveSpider(Spider):
             self.name, 1, pygame.Color('black'))
         self.damage = 1
         self.col = pygame.Color('dark blue')
-        self.delay_move = 4
+        self.delay_move = .02
         self.speed = 5
 
     def render(self, game):
@@ -1271,8 +1323,8 @@ class CaveSpider(Spider):
         player = self.get_target(game)
         if self.delaydamage == 0 and self.speed > 0 and \
            pygame.sprite.collide_rect(player, self) and \
-           player.effects['poison'] < 5:
-            player.effects['poison'] = 5
+           player.effects['poison'] < 2:
+            player.effects['poison'] = 2
 
 
 class Zombie(BaseZombie):
@@ -1285,14 +1337,14 @@ class Husk(BaseZombie):
         self.color_body = pygame.Color(15, 10, 8)
         self.color_head = pygame.Color('tan')
         self.color_arm = pygame.Color('tan')
-        self.delay_move = 13
-        self.delay_damage = 8
+        self.delay_move = .06
+        self.delay_damage = .4
         self.name = 'Husk'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
         self.xp_drop = 0.25
-        self.damage = 3
-        self.hpmax = self.hp
+        self.hpmax = 40
+        self.hp = self.hpmax
 
 
 class Drowned(BaseZombie):
@@ -1301,14 +1353,14 @@ class Drowned(BaseZombie):
         self.color_body = pygame.Color('blue')
         self.color_head = pygame.Color('light blue')
         self.color_arm = pygame.Color('light blue')
-        self.delay_move = 12
-        self.delay_damage = 8
+        self.delay_move = .05
+        self.delay_damage = .45
         self.name = 'Drowned'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
         self.xp_drop = 0.25
         self.hpmax = self.hp
-        self.damage = 4
+        self.damage = 2
 
 
 class PlantZombie(BaseZombie):
@@ -1330,7 +1382,7 @@ class PlantZombie(BaseZombie):
     def render(self, game):
         super().render(game)
         player = self.get_target(game)
-        if self.delaydamage == 0 and self.speed > 0 and \
+        if self.delaydamage == time.time() and self.speed > 0 and \
            pygame.sprite.collide_rect(player, self) and \
            player.effects['slowness'] < 30:
             player.effects['slowness'] = 30
@@ -1344,14 +1396,15 @@ class ArmoredZombie(BaseZombie):
         self.name = 'Armored Zombie'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.armor = 10
+        self.hpmax = 30
+        self.hp = self.hpmax
 
 
 class BabyZombie(BaseZombie):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.delay_move = 3
-        self.delay_damage = 3
+        self.delay_move = .01
+        self.delay_damage = .4
         self.name = 'Baby Zombie'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
@@ -1410,7 +1463,7 @@ class BabyZombie(BaseZombie):
 class ChickenJockey(BabyZombie):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.delay_move = 2
+        self.delay_move = .01
         self.name = 'Chicken Jockey'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
@@ -1540,8 +1593,8 @@ class ChickenJockeyTower(ChickenJockey):
 class SpeedyZombie(BaseZombie):
     def __init__(self, x, y):
         super().__init__(x, y)
-        self.delay_move = 6
-        self.delay_damage = 4
+        self.delay_move = .036
+        self.delay_damage = .5
         self.name = 'Speedy Zombie'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
@@ -1552,8 +1605,8 @@ class Necromancer(BaseZombie):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.maintype = 'wizard'
-        self.delay_move = 8
-        self.delay_damage = 200 * 2
+        self.delay_move = .08
+        self.delay_damage = 4.5
         self.damage = 0
         self.name = 'Necromancer'
         self.text = pygame.font.SysFont(self.name, 20).render(
@@ -1561,8 +1614,8 @@ class Necromancer(BaseZombie):
         self.xp_drop = 0.6
         self.hpmax = 40
         self.hp = self.hpmax
-        self.summondelay = 0
-        self.summon_delay = 100
+        self.summondelay = time.time()
+        self.summon_delay = 6
         self.color_head  = pygame.Color('black')
         self.color_arm = self.color_body = self.color_head
         self.shot = dungeon_arrows.Bolt
@@ -1571,14 +1624,13 @@ class Necromancer(BaseZombie):
     def render(self, game):
         super().render(game)
         player = self.get_target(game)
-        if self.delaydamage == 0 and self.speed > 0:
+        if self.delaydamage == time.time() and self.speed > 0:
             arrow = self.shot((self.rect.x, self.rect.y),
                               (player.rect.x, player.rect.y), self)
             game.arrows.append(arrow)
             
-        self.summondelay += 1
-        if self.summondelay >= self.summon_delay and self.speed > 0:
-            self.summondelay = 0
+        if time.time() - self.summondelay >= self.summon_delay and self.speed > 0:
+            self.summondelay = time.time()
             enemy = random.choice(self.summonable)
             game.enemies.append(enemy(random.randint(
                 self.rect.x - 50, self.rect.x + 80),
@@ -1587,7 +1639,7 @@ class Necromancer(BaseZombie):
 
         for enemy in game.enemies:
             if ((enemy.maintype == 'skeleton' or enemy.maintype == 'zombie')
-               and math.dist((self.rect.x, self.rect.y), (game.player.rect.x, game.player.rect.y)) < 300):
+               and math.dist((self.rect.x, self.rect.y), (enemy.rect.x, enemy.rect.y)) < 300):
                 if enemy.effects['strength'] < 1:
                     enemy.effects['strength'] = 1
                 if enemy.effects['speed'] < 1:
@@ -1598,8 +1650,8 @@ class NamelessOne(Necromancer):
     def __init__(self, x, y):
         super().__init__(x, y)
         self.maintype = 'boss'
-        self.delay_move = 5
-        self.delay_damage = 100
+        self.delay_move = .08
+        self.delay_damage = 3.8
         self.damage = 3
         self.name = 'The Nameless One'
         self.text = pygame.font.SysFont(self.name, 20).render(
@@ -1610,26 +1662,25 @@ class NamelessOne(Necromancer):
         self.color_body = pygame.Color('white')
         self.color_head = pygame.Color('green')
         self.color_arm = pygame.Color('white')
-        self.summon_delay = 80
+        self.summon_delay = 7
         self.summonable = [SkeletonVanguard, SkeletonVanguard,
                            SkeletonVanguard, Necromancer]
         self.poses = []
-        self.switchdelay = 0
-        self.switch_delay = 300
+        self.switchdelay = time.time()
+        self.switch_delay = 15
         self.fix_poses()
 
     def render(self, game):
         super().render(game)
-        self.switchdelay += 1
-        if self.switchdelay >= self.switch_delay:
-            self.switchdelay = 0
+        if time.time() - self.switchdelay >= self.switch_delay:
+            self.switchdelay = time.time()
             self.fix_poses()
-        if self.summondelay == 0 and self.speed > 0:
+        if self.summondelay == time.time() and self.speed > 0:
             for x, y in self.poses:
                 enemy = random.choice(self.summonable)
                 game.enemies.append(enemy(random.randint(x - 50, x + 80),
                                           random.randint(y - 50, y + 85)))
-        if self.delaydamage == 0 and self.speed > 0:
+        if self.delaydamage == time.time() and self.speed > 0:
             player = self.get_target(game)
             for x, y in self.poses:
                 arrow = self.shot((self.rect.x, self.rect.y),
@@ -1667,7 +1718,8 @@ class ArmoredSkeleton(BaseSkeleton):
         self.name = 'Armored Skeleton'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.armor = 10
+        self.hpmax = 30
+        self.hp = self.hpmax
 
 
 class Stray(BaseSkeleton):
@@ -1836,7 +1888,7 @@ class Vindicator(BaseIllager):
         self.melee = True
         self.weapon = dungeon_weapons.IronAxe(1)
         self.name = 'Vindicator'
-        self.delay_move = 10
+        self.delay_move = .03
         self.speed = 3
         self.fix()
 
@@ -1848,7 +1900,8 @@ class ArmoredVindicator(Vindicator):
         self.name = 'Armored Vindicator'
         self.text = pygame.font.SysFont(self.name, 20).render(
             self.name, 1, pygame.Color('black'))
-        self.armor = 10
+        self.hpmax = 35
+        self.hp = self.hpmax
 
 
 class Vex(BaseIllager):
@@ -1857,7 +1910,7 @@ class Vex(BaseIllager):
         self.melee = True
         self.weapon = dungeon_weapons.IronSword(1)
         self.name = 'Vex'
-        self.delay_move = 5
+        self.delay_move = .02
         self.speed = 5
         self.color_arm = pygame.Color('light blue')
         self.color_body = self.color_arm
@@ -1929,20 +1982,18 @@ class Evoker(BaseIllager):
                            (object,),
                            {'damage': 0, 'render': self.wand_render})()
         self.name = 'Evoker'
-        self.delay_move = 10
         self.speed = 2
         self.wand_color = pygame.Color('yellow')
         self.fix()
-        self.delay_damage = 800
+        self.delay_damage = 7
 
     def wand_render(self, x, y, game):
         pygame.draw.line(game.screen, self.wand_color,
                          (x, y), (x + 10, y + 10), 3)
 
     def attack(self, game):
-        self.delaydamage += 1
-        if self.delaydamage >= self.delay_damage and self.speed > 0:
-            self.delaydamage = 0
+        if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
+            self.delaydamage = time.time()
             if random.randint(0, 2) == 0:
                 game.enemies.append(Vex(self.rect.x + random.randint(-20, 20),
                                         self.rect.y + random.randint(-20, 20)))
@@ -1975,6 +2026,7 @@ class Iceologer(BaseIllager):
         self.has_weapon = False
         self.name = 'Iceologer'
         self.delay_damage = time.time()
+        self.delaydamage = 5
         self.weapon = type('IceologerWand',
                            (object,),
                            {'damage': 0, 'render': lambda game: ...})()
@@ -2052,15 +2104,14 @@ class Geomancer(BaseIllager):
                            (object,),
                            {'damage': 0, 'render': lambda game: ...})()
         self.fix()
-        self.delay_damage = 70 * 3
+        self.delay_damage = 2
         self.num = 0
 
     def attack(self, game):
-        self.delaydamage += 1
-        if self.delaydamage >= self.delay_damage and self.speed > 0:
+        if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
             self.num += 1
             player = self.get_target(game)
-            self.delaydamage = 0
+            self.delaydamage = time.time()
             t = random.choice(([True] * 2) + ([False] * 5))
             px, py = player.rect.x, player.rect.y
             sx, sy = self.rect.x, self.rect.y
@@ -2095,13 +2146,12 @@ class Witch(BaseIllager):
                            (object,),
                            {'damage': 0, 'render': lambda game: ...})()
         self.fix()
-        self.delay_damage = 150 * 4
+        self.delay_damage = 6
         self.color_body = pygame.Color('purple')
 
     def attack(self, game):
-        self.delaydamage += 1
-        if self.delaydamage >= self.delay_damage and self.speed > 0:
-            self.delaydamage = 0
+        if time.time() - self.delaydamage >= self.delay_damage and self.speed > 0:
+            self.delaydamage = time.time()
             player = self.get_target(game)
             effect = random.choice([
                 'poison', 'poison', 'poison',
@@ -2220,20 +2270,19 @@ class TheCauldron(BaseEnemy):
         super().__init__(x, y)
         self.text = pygame.font.SysFont('', 20).render(
             'The Cauldron', 20, pygame.Color('black'))
-        self.delay_damage = 5
+        self.delay_damage = 0.4
         self.damage = 3
         self.delay_move = float('inf')
-        self.summondelay = 0
-        self.summon_delay = 100
+        self.summondelay = time.time()
+        self.summon_delay = 5
         self.rect = pygame.Rect(x, y, 100, 100)
         self.hpmax = 200
         self.hp = self.hpmax
 
     def render(self, game):
         super().render(game)
-        self.summondelay += 1
-        if self.summondelay >= self.summon_delay:
-            self.summondelay = 0
+        if time.time() - self.summondelay >= self.summon_delay:
+            self.summondelay = time.time()
             game.enemies.append(ConjuredSlime(
                 random.randint(self.rect.x - 30, self.rect.x + 160),
                 random.randint(self.rect.y - 30, self.rect.y + 160)))

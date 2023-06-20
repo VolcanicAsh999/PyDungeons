@@ -7,14 +7,15 @@ import dungeon_settings
 
 class Arrow:
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, rot=None, growing=False):
+                 chain=0, chainstack=0, rot=None, growing=0, bow=None):
         self.x, self.y = startpos  # set the x and y positions
         self.target = target  # keep track of where it is heading
+
+        self.bow = bow
 
         self.start = startpos
 
         self.ischain = chain  # need to reduce chain opness
-        self.chainstack = chainstack
 
         self.tip_color = pygame.Color('light grey')  # arrow tip color
         self.shaft_color = pygame.Color('brown')  # arrow shaft color
@@ -23,6 +24,8 @@ class Arrow:
 
         self.damage = damage
         self.knockback = knockback  # knockback don't work at the moment
+
+        self.damage_growing = 1
 
         self.safe = safe
 
@@ -98,13 +101,14 @@ class Arrow:
             if entity != self.safe and \
                pygame.sprite.collide_rect(entity, self):
                 self.hit(entity, game)
+                if self.bow: self.bow.arrow_hit(game, entity)
                 self.destroy(game)
                 dungeon_settings.arrow_hit.play()
 
             entity.rect = rec
 
-        if self.growing:
-            self.damage += 0.04  # increase damage if arrow is growing
+        if self.growing and ((self.damage_growing - 1) < (self.growing * .25)):
+            self.damage_growing += .001 * self.growing  # increase damage if arrow is growing
 
         if self.rect.x < -100 or \
            self.rect.x > game.screen.get_width() + 100 or \
@@ -135,101 +139,93 @@ class Arrow:
         y = self.rect.y
         self.rect.x = self.xrect.x
         self.rect.y = self.xrect.y
-        if self.growing:
-            self.growing = round(self.growing)
         if type(entity) not in [dungeon_helpful.Golem, dungeon_helpful.Wolf,
                                 dungeon_helpful.Bat]:
-            entity.take_damage(self.damage)
+            entity.take_damage(self.damage * self.damage_growing)
         else:
-            entity.take_damage(self, self.damage)
+            entity.take_damage(self, self.damage * self.damage_growing)
         entity.knockback(self.knockback, self)  # don't work! waah!
         if hasattr(entity, 'armor_use'):
             entity.armor_use(self, game)  # just for players
-        if self.ischain and \
-           random.randint(0, 10 - int(round(self.chainstack / 2))) == 0:
+        if self.ischain and random.randint(1, 10) < (self.ischain + 1):
             # 5 different directions
             game.arrows.append(type(self)((self.rect.x + entity.rect.width,
                     self.rect.y + entity.rect.height),
                     (self.rect.x + (int(self.dx) * 10), self.rect.y),
-                    self.damage, self.knockback, self.safe, self.ischain,
-                    self.chainstack - 1))
+                    self.damage, self.knockback, self.safe, False))
             game.arrows.append(type(self)((self.rect.x + entity.rect.width,
                     self.rect.y + entity.rect.height),
                     (self.rect.x + (int(self.dx) * 10),
                      self.rect.y + (int(self.dy) * 10)),
-                    self.damage, self.knockback, self.safe, self.ischain,
-                    self.chainstack - 1))
+                    self.damage, self.knockback, self.safe, False))
             game.arrows.append(type(self)((self.rect.x + entity.rect.width,
                     self.rect.y + entity.rect.height),
                     (self.rect.x, self.rect.y + (int(self.dy) * 10)),
-                    self.damage, self.knockback, self.safe, self.ischain,
-                    self.chainstack - 1))
+                    self.damage, self.knockback, self.safe, False))
             game.arrows.append(type(self)((self.rect.x + entity.rect.width,
                     self.rect.y + entity.rect.height),
                     (self.rect.x + (int(self.dx) * 5),
                     self.rect.y + (int(self.dy) * 5)),
-                    self.damage, self.knockback, self.safe, self.ischain,
-                    self.chainstack - 1))
+                    self.damage, self.knockback, self.safe, False))
             game.arrows.append(type(self)((self.rect.x + entity.rect.width,
                     self.rect.y + entity.rect.height),
                     (self.rect.x + (int(self.dx) * -5),
                      self.rect.y + (int(self.dy) * -5)),
-                    self.damage, self.knockback, self.safe, self.ischain,
-                    self.chainstack - 1))
+                    self.damage, self.knockback, self.safe, False))
         self.rect.x = x
         self.rect.y = y
 
 
 class SlowArrow(Arrow):
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, growing=False):
+                 chain=False, chainstack=0, growing=False, bow=None):
         super().__init__(startpos, target, damage, knockback, safe,
-                         chain, chainstack)
+                         chain, chainstack, bow=bow)
         self.tip_color = pygame.Color('dark grey')
 
     def hit(self, entity, game):
         super().hit(entity, game)
-        if hasattr(entity, 'effects') and entity.effects['slowness'] < 15:
-            entity.effects['slowness'] = 15
+        if hasattr(entity, 'effects') and entity.effects['slowness'] < 5:
+            entity.effects['slowness'] = 5
         elif not hasattr(entity, 'effects'):  # if it's a spawner
             entity.take_damage(1)
 
 
 class PoisonArrow(Arrow):
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, growing=False):
+                 chain=False, chainstack=0, growing=False, bow=None):
         super().__init__(startpos, target, damage, knockback, safe,
-                         chain, chainstack)
+                         chain, chainstack, bow=bow)
         self.tip_color = pygame.Color('green')
 
     def hit(self, entity, game):
         super().hit(entity, game)
-        if hasattr(entity, 'effects') and entity.effects['poison'] < 15:
-            entity.effects['poison'] = 15  # poison it
+        if hasattr(entity, 'effects') and entity.effects['poison'] < 5:
+            entity.effects['poison'] = 5  # poison it
         elif not hasattr(entity, 'effects'):
             entity.take_damage(1)
 
 
 class FlamingArrow(Arrow):
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, growing=False):
+                 chain=False, chainstack=0, growing=False, bow=None):
         super().__init__(startpos, target, damage, knockback, safe,
-                         chain, chainstack)
+                         chain, chainstack, bow=bow)
         self.tip_color = self.shaft_color = pygame.Color('red')
 
     def hit(self, entity, game):
         super().hit(entity, game)
-        if hasattr(entity, 'effects') and entity.effects['fire'] < 25:
-            entity.effects['fire'] = 25  # light it up!
+        if hasattr(entity, 'effects') and entity.effects['fire'] < 10:
+            entity.effects['fire'] = 10  # light it up!
         elif not hasattr(entity, 'effects'):
             entity.take_damage(1)
 
 
 class ExplodingArrow(Arrow):
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, growing=False):
+                 chain=False, chainstack=0, growing=False, bow=None):
         super().__init__(startpos, target, damage, knockback, safe,
-                         chain, chainstack)
+                         chain, chainstack, bow=bow)
         self.tip_color = pygame.Color('red')
         self.shaft_color = pygame.Color('white')
         self.explodebox = pygame.Rect(self.rect.x - (self.d1 * 10),
@@ -275,9 +271,9 @@ class ExplodingArrow(Arrow):
 
 class ImplodingArrow(ExplodingArrow):
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, growing=False):
+                 chain=False, chainstack=0, growing=False, bow=None):
         super().__init__(startpos, target, damage, knockback, safe,
-                         chain, chainstack)
+                         chain, chainstack, bow=bow)
         self.tip_color = pygame.Color('white')
         self.shaft_color = pygame.Color('red')
         self.knockback *= -1
@@ -285,14 +281,14 @@ class ImplodingArrow(ExplodingArrow):
 
 class SpeedWhenHurtArrow(Arrow):
     def __init__(self, startpos, target, damage, knockback, safe,
-                 chain=False, chainstack=0, growing=False):
+                 chain=False, chainstack=0, growing=False, bow=None):
         super().__init__(startpos, target, damage, knockback, safe,
-                         chain, chainstack)
+                         chain, chainstack, bow=bow)
 
     def hit(self, entity, game):
         super().hit(entity, game)
-        if entity.hp <= 0 and game.player.effects['speed'] < 10:
-            game.player.effects['speed'] = 10  # speed on kill
+        if entity.hp <= 0 and game.player.effects['speed'] < 4:
+            game.player.effects['speed'] = 4  # speed on kill
 
 
 class Bolt(Arrow):

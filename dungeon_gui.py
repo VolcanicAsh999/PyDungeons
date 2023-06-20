@@ -70,6 +70,41 @@ class Button:
         self.size = font_size
 
 
+def get_enchant(weapon, game):
+    a = {1: 0, 2: 0, 3: 0}
+    def _1(): a[1] = 1
+    def _2(): a[2] = 1
+    def _3(): a[3] = 1
+    s = game.screen
+    w = s.get_width()
+    h = s.get_height()
+    b1 = Button(pygame.Rect((w // 2) - 200, 50, 400, 80), pygame.Color('light grey'), weapon.slots[1] + ' ' + str(weapon.slotlevel[1]+1), _1, 70, 'default')
+    b2 = Button(pygame.Rect((w // 2) - 200, 200, 400, 80), pygame.Color('light grey'), weapon.slots[2] + ' ' + str(weapon.slotlevel[2]+1), _2, 70, 'default')
+    b3 = Button(pygame.Rect((w // 2) - 200, 350, 400, 80), pygame.Color('light grey'), weapon.slots[3] + ' ' + str(weapon.slotlevel[3]+1), _3, 70, 'default')
+    null = type('', (), {'update': lambda x: ..., 'update_': lambda a, b, c, d, e: ...})
+    if weapon.slotlevel[1] == 3:
+        b1 = null
+    if weapon.slotlevel[2] == 3:
+        b2 = null
+    if weapon.slotlevel[3] == 3:
+        b3 = null
+    s.fill(pygame.Color('dark green'))
+    while 1:
+        events = pygame.event.get()
+        b1.update(events)
+        b2.update(events)
+        b3.update(events)
+        for event in events:
+            if event.type == pygame.VIDEORESIZE:
+                b1.update_((w // 2) - 200, 50, 400, 80, 70)
+                b2.update_((w // 2) - 200, 200, 400, 80, 70)
+                b3.update_((w // 2) - 200, 350, 400, 80, 70)
+        if a[1]: return 1
+        if a[2]: return 2
+        if a[3]: return 3
+        pygame.display.update()
+
+
 class ScrollBar:
     def __init__(self, pos, height, press, color, do_update_every_motion=False):
         self.sliderect = pygame.Rect(pos[0], pos[1] - 3, 10, 10)
