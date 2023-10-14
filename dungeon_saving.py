@@ -252,7 +252,9 @@ def load_world(game, filename):
             if thing(0).name == rang['Name']:
                 item = thing(rang['pow'])
                 break
-        if item is None: print(rang['Name'])
+        if item is None:
+            print(rang['Name'])
+            continue
         item._bonus = rang['bonus']
         item.cooldown, item.arrow['damage'], item.arrow['knockback'], item.arrow['type'], item.arrow[
             'name'] = rang['cooldown'], rang['damage'], rang['knockback'], data2['arrows'][rang['type']], rang['name']

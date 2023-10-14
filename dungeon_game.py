@@ -12,19 +12,19 @@ if __name__ == '__main__':
     dungeon_settings.load(dungeon_settings.BASEPATH)
 from dungeon_settings import FONT_PATH, BASEPATH  # need the fonts
 import dungeon_logger as logger
-import pygame
 
-__version__ = '1.7.1'
+import pygame
+pygame.init()
+
+__version__ = '1.7.2'
 
 if True:  # not dungeon_settings.DO_FULL_SCREEN:
     # resizable window, but not full screen
     screen = pygame.display.set_mode((1000, 700), pygame.RESIZABLE)
 # elif dungeon_settings.DO_FULL_SCREEN:
-    # screen = pygame.display.set_mode((1470, 770), pygame.FULLSCREEN) #full screen window! (disable while testing, as crashes with fullscreen window are horrible
+    # screen = pygame.display.set_mode((1470, 770), pygame.FULLSCREEN) #full screen window! (disable while testing, crashes with fullscreen window are annoying to get past)
 
 pygame.display.set_caption('PyDungeons ' + __version__)  # set the caption
-
-pygame.init()  # why is pygame.init() after the rest of this...? It should be before the pygame.display calls... TODO: move it up
 
 screen_color = pygame.Color('dark green')  # background color
 
@@ -32,8 +32,8 @@ logger.init()
 logger.info('PyDungeons ' + __version__ + ' loading!')  # loading game
 
 screen.fill(screen_color)
-screen.blit(pygame.font.Font(FONT_PATH, 100).render('Loading...', 1, pygame.Color(
-    'black')), (100, 100))  # loading screen while imports are loading
+screen.blit(pygame.font.Font(FONT_PATH, 100).render('Loading...', 1,
+            pygame.Color('black')), (100, 100))  # loading screen while imports are loading
 pygame.display.update()
 
 import itertools
@@ -68,10 +68,12 @@ dungeon_settings.initcursor()  # initialize the cursor
 
 PATH = dungeon_settings.FONT_PATH  # keep a shorter version of the font path
 
-stop_credits = False
-stop_options = False
-stop_controls = False
-stop_menu = False  # stuff to help with the menus
+# Stuff to help with the menus
+class Menu:
+    stop_credits = False
+    stop_options = False
+    stop_controls = False
+    stop_menu = False 
 
 button_save = None  # for old options screens
 button_save2 = None
@@ -88,7 +90,6 @@ def dif(dif):
         logger.error(f'Difficulty {dif} does not exist.')
         return None
 
-
 # dictionary of chest names -> chest types
 chests = {'armor': dungeon_chests.ArmorChest, 'silver': dungeon_chests.SilverChest, 'supply': dungeon_chests.SupplyChest,
           'norm': dungeon_chests.WeaponChest, 'emerald': dungeon_chests.EmeraldChest, 'obsidian': dungeon_chests.ObsidianChest}
@@ -97,9 +98,9 @@ chests = {'armor': dungeon_chests.ArmorChest, 'silver': dungeon_chests.SilverChe
 # Finally doesn't use Tkinter anymore!
 def text__input(title, prompt):
     # name = input('NAME>')
-    return dungeon_text_input.gettextinput((200, 100), screen, fillcolor=screen_color, accepttext='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -_+', fontsize=50, other_text='World Name: ', doupdate=True)
+    return dungeon_text_input.gettextinput((200, 100), screen, fillcolor=screen_color, accepttext='0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ -_+/*', fontsize=50, other_text='World Name: ', doupdate=True)
 
-
+# Why are there 2 they are literally the same thing?
 def textinput(game, prompt):  # text input using dungeon_text_input
     return dungeon_text_input.gettextinput((10, game.screen.get_height() - 30), game.screen, whilerunfunc=(game.update_while_chat, ()), other_text=prompt, fillcolor=game.screen_color, doupdate=False, passtext=True)
 
@@ -557,27 +558,22 @@ class Game:
 
 
 def stop():
-    global stop_credits
-    stop_credits = True
+    Menu.stop_credits = True
 
 
 def back():
-    global stop_options
-    stop_options = True
+    Menu.stop_options = True
 
 
 def menu():
-    global stop_controls
-    stop_controls = True
+    Menu.stop_controls = True
 
 
 def main_menu():
-    global stop_menu
-    stop_menu = True
+    Menu.stop_menu = True
 
 
 def show_credits():
-    global stop_credits
     text = [pygame.font.Font(PATH, 70).render('Coded by: VolcanicAsh999', 1, pygame.Color('black')),
             pygame.font.Font(PATH, 70).render(
                 'Characters created by: VolcanicAsh999', 1, pygame.Color('black')),
@@ -604,8 +600,8 @@ def show_credits():
             if event.type == pygame.VIDEORESIZE:
                 button_back.update_(50, screen.get_height() - 100, 300, 80, 60)
         pygame.display.update()
-        if stop_credits:
-            stop_credits = False
+        if Menu.stop_credits:
+            Menu.stop_credits = False
             main()
 
 # old functions
@@ -634,7 +630,7 @@ def reset():
 
 
 def show_options():  # no options
-    global stop_options, button_save, button_save2
+    global button_save, button_save2
     button_back = dungeons_gui.Button(pygame.Rect((screen.get_width(
     ) // 2 - 150), (screen.get_height() - 200), 300, 80), 'light gray', 'Back', back, 60, PATH)
     button_sneak = dungeons_gui.Button(pygame.Rect((screen.get_width(
@@ -657,13 +653,12 @@ def show_options():  # no options
                 button_sneak.update_(
                     (screen.get_width() // 2 - 150), (screen.get_height() - 300), 300, 80, 60)
         pygame.display.update()
-        if stop_options:
-            stop_options = False
+        if Menu.stop_options:
+            Menu.stop_options = False
             main()
 
 
 def show_controls():
-    global stop_controls
     button_back = dungeons_gui.Button(pygame.Rect((screen.get_width(
     ) // 2 - 150), (screen.get_height() - 90), 300, 80), 'light gray', 'Back', menu, 60, PATH)
 
@@ -704,8 +699,8 @@ def show_controls():
                 button_back.update_(
                     (screen.get_width() // 2 - 150), (screen.get_height() - 90), 300, 80, 60)
         pygame.display.update()
-        if stop_controls:
-            stop_controls = False  # return
+        if Menu.stop_controls:
+            Menu.stop_controls = False  # return
             main()
 
 
@@ -867,8 +862,8 @@ def startgame():
                     worldbuttons[index][0].update_(20, (screen.get_height(
                     ) - (90 * (index + 2))), screen.get_width() - 40, 80, 60)  # show all the worlds
         pygame.display.update()
-        if stop_menu:
-            stop_menu = False
+        if Menu.stop_menu:
+            Menu.stop_menu = False
             main()
 
 
@@ -974,8 +969,6 @@ def main(options=None):
 
 
 if __name__ == '__main__':
-    def main_():
-        # see, it says `starting game` and `loading PyDungeons {__version__}` twice
-        logger.info('Starting Game.')
-        main()
-    main_()
+    logger.info('Starting Game.')
+    main()
+    

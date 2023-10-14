@@ -140,3 +140,7 @@
 1.7.1
     -Finished enchantments, fixed more bugs
     -Old worlds are no imcompatible with this version
+
+1.7.2
+    -Fixed bugs
+    -Bow enchantments may not come for a while, but are somewhat in progress

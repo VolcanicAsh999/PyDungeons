@@ -50,6 +50,8 @@ class BaseMeleeWeapon:
         self.lasttime = time.time()
         self.bees = []
         self.stacked = 0
+        self._combo = 0
+        self._maxcombo = 0
         self.randomize_enchants()
 
     def randomize_enchants(self):
@@ -118,6 +120,11 @@ class BaseMeleeWeapon:
         enemy.take_damage(damage)
         enemy.knockback(knockback, player)
         dungeon_settings.weapon_hit.play()
+        if self._combo > 0:
+            self._combo -= 1
+            if self._combo == 0:
+                self._combo = self._maxcombo
+                enemy.take_damage(damage / 2)
         if 'Heals nearby allies' in self._bonus and random.randint(0, 4) == 0:
             for x in game.helpfuls:
                 if distance_to(x, game.player) < 100:
@@ -142,11 +149,21 @@ class BaseMeleeWeapon:
                         i.rect.y += 3
 
                 i.hitbox.update(i.rect.x, i.rect.y, i.reach)
-            
-        if 'Extra damage to unsuspecting enemies' in self._bonus and enemy.get_target(player._game) != player:
+        if 'Extra damage to unsuspecting enemies' in self._bonus and enemy.get_target(game) != player:
             enemy.take_damage(damage * .2)
+        if 'Shared pain' in self._bonus and enemy.hp <= 0:
+            extra = -enemy.hp
+            enem = []
+            for i in game.enemies:
+                if math.dist((enemy.rect.x, enemy.rect.y), (i.rect.x, i.rect.y)) <= 50:
+                    enem.append(i)
+            if len(enem) == 0: return
+            dmg = extra / len(enem)
+            for i in enem: i.take_damage(dmg)
+        if 'Lights mobs on fire' in self._bonus:
+            enemy.effects_['fire'] = (3, 1 + (self.pow * .02))
 
-        enemy.give_unmoving(random.uniform(max(self.cooldown-.1, .1), max(self.cooldown+.1, .3)), 'got whacked boi')
+        enemy.give_unmoving(random.uniform(max(self.cooldown-.1, .1), max(self.cooldown+.1, .3)), 'got whacked boi')  # Placeholder reason for freezing (so it doesn't draw ice)
         
         self.check_enchants('attack', player, enemy, damage, knockback, game)
 
@@ -624,7 +641,7 @@ class BaseRangeWeapon:
         player.emeralds += random.randint(13, 17)
         player.level += self._spent
 
-    def check_enchants(self, trigger, player, game, enemy=None):
+    def check_enchants(self, trigger, player, game, enemy=None, arrow=None):
         if trigger == 'soul':
             for i in range(1, 4):
                 if self.slotlevel[i] == 1:
@@ -1367,6 +1384,32 @@ class Heartstealer(Sword):
         self.update_descript()
 
 
+class ObsidianClaymore(Sword):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.cooldown = 1.2
+        self.reach = 40
+        self.damage = 10 + (pow * .4)
+        self.bladecolor = pygame.Color('purple')
+        self.handlecolor = pygame.Color('black')
+        self._bonus.append('Powerful combo')
+        self._combo = self._maxcombo = 2
+        self.update_descript()
+
+
+class StarlessNight(Sword):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.cooldown = 1.2
+        self.reach = 40
+        self.damage = 10 + (pow * .4)
+        self.bladecolor = pygame.Color('purple')
+        self.handlecolor = pygame.Color('black')
+        self._bonus.extend(['Shared pain', 'Powerful combo'])
+        self._combo = self._maxcombo = 2
+        self.update_descript()
+
+
 class Mace_(Mace):
     def __init__(self, pow):
         super().__init__(pow)
@@ -1404,6 +1447,19 @@ class IronAxe(Axe):
         self.reach = 30
         self.damage = 3 + (pow * 1.05)
         self.bladecolor = pygame.Color('grey')
+        self.update_descript()
+
+
+class Firebrand(Axe):
+    def __init__(self, pow):
+        super().__init__(pow)
+        self.name = 'Firebrand'
+        self.cooldown = 1.13
+        self.reach = 30
+        self.damage = 3 + (pow * 1.05)
+        self.bladecolor = pygame.Color('red')
+        self.handlecolor = pygame.Color('red')
+        self._bonus.append('Lights mobs on fire')
         self.update_descript()
 
 

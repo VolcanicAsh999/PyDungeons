@@ -290,7 +290,7 @@ class Player:
             cooldown = self.weapon.cooldown
         reach = 30
         if self.weapon:
-            reach = self.weapon.reach
+            reach = self.weapon.reach * 2
         knockback = 20
         if self.weapon:
             knockback = self.weapon.knockback
@@ -525,7 +525,6 @@ class Player:
         if self.indexc > len(self.consumables) - 1:
             self.indexc = 0
         self.consumable = self.consumables[self.indexc]
-        self.update_power()
 
     def nextarmor(self, game, amount=1):
         self.indexarmor += amount
